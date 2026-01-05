@@ -43,7 +43,7 @@ class BaseEnv:
         cfg.robot = ArticulationCfg(
             prim_path="{ENV_REGEX_NS}/Franka",
             spawn=sim_utils.UrdfFileCfg(
-                asset_path="franka_fr3/fr3_franka_hand.urdf",
+                asset_path="assets/franka_fr3/fr3_franka_hand.urdf",
                 fix_base=True,
                 joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
                     target_type="position",
@@ -110,13 +110,35 @@ class BaseEnv:
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=(0.0, 0.0, 0.05))
         )
+
         cfg.ground = AssetBaseCfg(
             prim_path="/World/defaultGroundPlane",
             spawn=sim_utils.GroundPlaneCfg(size=(1000.0, 1000.0)),
             init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.0)),
         )
+
         cfg.dome_light = AssetBaseCfg(
             prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=300.0, color=(0.75, 0.75, 0.75))
+        )
+
+        cfg.spherical_light = AssetBaseCfg(
+            prim_path="{ENV_REGEX_NS}/Spherical_Light",
+            spawn=sim_utils.SphereLightCfg(intensity=3000000.0, color=(1.0, 1.0, 1.0), radius=0.03),
+            init_state=AssetBaseCfg.InitialStateCfg(pos=(-2.0, -1.0, 3.0))
+        )
+
+        cfg.camera = TiledCameraCfg(
+            prim_path="{ENV_REGEX_NS}/Camera",
+            width=160,
+            height=160,
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=45.0, focus_distance=400.0, horizontal_aperture=20.0, clipping_range=(0.1, 1.0e5)
+            ),
+            offset=TiledCameraCfg.OffsetCfg(
+                pos=(2.0, 0.0, 1.5),
+                rot=(0.64597, 0.28761, 0.28761, 0.64597),
+                convention="opengl",
+            )
         )
         return cfg
 
@@ -124,7 +146,48 @@ class BaseEnv:
         pass
     
     def step(self, action=None):
+        self.app.update()
         self.sim.step(render=False)
         self.scene.update(self.sim.get_physics_dt())
         self.sim.render(mode=sim_utils.SimulationContext.RenderMode.FULL_RENDERING)
         pass
+
+    def close(self):
+        # 0) Make prints appear even if shutdown is abrupt
+        import sys
+        def log(msg):
+            print(msg, flush=True)
+
+        log("Shutting down...")
+
+        # 1) Stop timeline (prevents sensors/render from continuing to tick)
+        try:
+            import omni.timeline
+            omni.timeline.get_timeline_interface().stop()
+            log("Timeline stopped")
+        except Exception as e:
+            log(f"Timeline stop skipped: {e}")
+
+        # 2) Clear/destroy your sim/env objects (do this BEFORE app.close)
+        try:
+            # Prefer explicit env/sensor destroy calls if you have them
+            # e.g., self.env.close() / camera.destroy() / render_product.destroy()
+            self.sim.clear_instance()
+            log("Simulation instance cleared")
+        except Exception as e:
+            log(f"sim.clear_instance failed: {e}")
+
+        self.scene = None
+        log("Scene reference cleared (Python-side)")
+
+        # 3) Let Kit process destruction for a few frames
+        try:
+            for _ in range(5):
+                self.app.update()
+            log("App updated (cleanup frames)")
+        except Exception as e:
+            log(f"App update skipped/failed: {e}")
+
+        # 4) Close the app LAST (often terminates the process)
+        log("Calling app.close() (process may exit here)")
+        self.app.close()
