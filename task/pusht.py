@@ -1,3 +1,5 @@
+import numpy as np
+import torch
 import task.base_env
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
@@ -19,6 +21,10 @@ from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 class PushTEnv(task.base_env.BaseEnv):
     def __init__(self):
         super().__init__()
+        self.t_shape = self.scene["t_shape"]
+        self.t_marker = self.scene["t_marker"]
+        self.t_shape: RigidObject
+        self.t_marker: RigidObject
 
     def scene_setup(self, num_envs=1, env_spacing=4):
         cfg = super().scene_setup(num_envs, env_spacing)
@@ -63,7 +69,34 @@ class PushTEnv(task.base_env.BaseEnv):
         )
 
         return cfg
-
-    def reset(self, idx=None):
-        return "PushTEnv reset called"
     
+
+    def reset_env(self, env_id, seed):
+        generator = super().reset_env(env_id, seed)
+        def rand_pos_quat(generator):
+            generator: np.random.Generator
+            poffset = generator.uniform(-0.1, 0.1, size=(2,))
+            quat_offset = generator.uniform(-1, 1, size=(2,))
+            quat_offset /= np.linalg.norm(quat_offset)
+
+            pos=np.array([0.55, 0.0, 0.125]) + np.array([poffset[0] * 0.5, poffset[1], 0.0])
+            quat=np.array([quat_offset[0], 0.0, 0.0, quat_offset[1]])
+
+            return np.concatenate([pos, quat])
+        pos_quat = rand_pos_quat(generator)
+
+        pos_quat = torch.tensor(pos_quat, device=self.sim.device, dtype=torch.float32)
+
+        pos_quat[0:3] += self.scene.env_origins[env_id]
+        self.t_shape.write_root_pose_to_sim(pos_quat[None], env_ids=env_id.unsqueeze(0))
+
+        return generator
+    
+    def get_observations(self):
+        obs = super().get_observations()
+        t_pose = self.t_shape.data.root_pose_w.clone()
+        t_pose[:, 0:3] -= self.scene.env_origins
+        obs["t_pose"] = t_pose.clone()
+        obs["targ_pose"] = self.targ_pose.clone()
+
+        return obs

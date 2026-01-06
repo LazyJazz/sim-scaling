@@ -1,10 +1,16 @@
 import argparse
+import os
+import numpy as np
+import torch
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Launch Isaac Lab tasks with specified environment.")
 parser.add_argument("--renderer", type=str, choices=["RayTracedLighting", "PathTracing"], default="RayTracedLighting", help="Renderer to use.")
 parser.add_argument("--samples-per-pixel-per-frame", type=int, default=4, help="Number of samples per pixel per frame.")
 parser.add_argument("--use-denoiser", action="store_true", help="Whether to use denoiser.")
+parser.add_argument("--seed", type=int, default=0, help="Random seed for the simulation.")
+parser.add_argument("--num-envs", type=int, default=1, help="Number of parallel environments.")
+parser.add_argument("--env-spacing", type=float, default=4.0, help="Spacing between environments.")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 
@@ -31,12 +37,35 @@ from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
 class BaseEnv:
     def __init__(self):
+        self.seed = args.seed
+
         self.app = app_launcher.app
         self.sim_cfg = sim_utils.SimulationCfg(dt=0.01, device=args.device)
         self.sim = sim_utils.SimulationContext(self.sim_cfg)
+        self.device = self.sim.device
 
-        self.scene = InteractiveScene(self.scene_setup())
+        self.scene = InteractiveScene(self.scene_setup(args.num_envs, args.env_spacing))
+
+        self.robot = self.scene["robot"]
+        self.robot: Articulation
+
+        self.camera = self.scene["camera"]
+        self.camera: TiledCamera
+
         self.sim.reset()
+
+        self.head_offset = torch.tensor([-0.001, -0.001, -0.103], device=self.sim.device)
+        self.targ_pose = torch.tensor([0.5, 0.0, 0.125, 0.7071, 0.0, 0.0, 0.7071], device=self.sim.device)
+        self.targ_pose[3:] /= torch.norm(self.targ_pose[3:], dim=-1, keepdim=True)
+        self.targ_marker_pose = torch.tensor([0.5, 0.0, 0.0751, 0.7071, 0.0, 0.0, 0.7071], device=self.sim.device)
+
+        diff_ik_cfg = DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls")
+        self.diff_ik_controller = DifferentialIKController(diff_ik_cfg, num_envs=self.scene.num_envs, device=self.sim.device)
+
+        self.ik_commands = torch.zeros(self.scene.num_envs, self.diff_ik_controller.action_dim, device=self.sim.device)
+        self.robot_entity_cfg = SceneEntityCfg("robot", joint_names=["fr3_joint.*"], body_names=["fr3_hand"])
+        self.robot_entity_cfg.resolve(self.scene)
+        self.ee_jacobi_idx = self.robot_entity_cfg.body_ids[0] - 1
 
     def scene_setup(self, num_envs=1, env_spacing=4.0):
         cfg = InteractiveSceneCfg(num_envs=num_envs, env_spacing=env_spacing)
@@ -142,10 +171,62 @@ class BaseEnv:
         )
         return cfg
 
-    def reset(self, idx=None):
-        pass
+    def reset(self, env_ids=None, seed=None):
+        if seed is not None:
+            self.seed = seed
+        if env_ids is None:
+            env_ids = torch.arange(self.scene.num_envs, device=self.sim.device)
+
+        for env_id in env_ids:
+            self.reset_env(env_id, self.seed)
+            self.seed += 1
+
+        self.sim.render(mode=sim_utils.SimulationContext.RenderMode.FULL_RENDERING)
+
+    def reset_env(self, env_id, seed):
+        joint_pos = self.robot.data.default_joint_pos[env_id].clone()
+        joint_vel = self.robot.data.default_joint_vel[env_id].clone()
+        self.robot.write_joint_state_to_sim(joint_pos[None], joint_vel[None], env_ids=env_id.unsqueeze(0))
+        self.robot.reset()
+
+        self.ik_commands[env_id] = torch.tensor([0.5, 0, 0.4, 0.0, 1.0, 0.0, 0.0], device=self.sim.device)
+
+        self.diff_ik_controller.reset()
+        self.diff_ik_controller.set_command(self.ik_commands)
+
+        jacobian = self.robot.root_physx_view.get_jacobians()[:, self.ee_jacobi_idx, :, self.robot_entity_cfg.joint_ids]
+        ee_pose_w = self.robot.data.body_pose_w[:, self.robot_entity_cfg.body_ids[0]]
+        root_pose_w = self.robot.data.root_pose_w
+        # compute frame in root frame
+        ee_pos_b, ee_quat_b = subtract_frame_transforms(
+            root_pose_w[:, 0:3], root_pose_w[:, 3:7], ee_pose_w[:, 0:3], ee_pose_w[:, 3:7]
+        )
+        # compute the joint commands
+        joint_pos_des = self.diff_ik_controller.compute(ee_pos_b, ee_quat_b, jacobian, self.robot.data.default_joint_pos[:, self.robot_entity_cfg.joint_ids])
+        joint_pos[self.robot_entity_cfg.joint_ids] = joint_pos_des[env_id]
+        joint_vel[self.robot_entity_cfg.joint_ids] = 0.0
+        self.robot.write_joint_state_to_sim(joint_pos[None], joint_vel[None], env_ids=env_id.unsqueeze(0))
+        self.robot.set_joint_position_target(joint_pos_des[env_id.unsqueeze(0)], joint_ids=self.robot_entity_cfg.joint_ids, env_ids=env_id.unsqueeze(0))
+
+        generator = np.random.default_rng(seed)
+        return generator
     
     def step(self, action=None):
+        self.diff_ik_controller.set_command(self.ik_commands)
+        jacobian = self.robot.root_physx_view.get_jacobians()[:, self.ee_jacobi_idx, :, self.robot_entity_cfg.joint_ids]
+        ee_pose_w = self.robot.data.body_pose_w[:, self.robot_entity_cfg.body_ids[0]]
+        root_pose_w = self.robot.data.root_pose_w
+        joint_pos = self.robot.data.joint_pos[:, self.robot_entity_cfg.joint_ids]
+        # compute frame in root frame
+        ee_pos_b, ee_quat_b = subtract_frame_transforms(
+            root_pose_w[:, 0:3], root_pose_w[:, 3:7], ee_pose_w[:, 0:3], ee_pose_w[:, 3:7]
+        )
+        # compute the joint commands
+        joint_pos_des = self.diff_ik_controller.compute(ee_pos_b, ee_quat_b, jacobian, joint_pos)
+
+        self.robot.set_joint_position_target(joint_pos_des, joint_ids=self.robot_entity_cfg.joint_ids)
+        self.scene.write_data_to_sim()
+
         self.app.update()
         self.sim.step(render=False)
         self.scene.update(self.sim.get_physics_dt())
@@ -189,5 +270,19 @@ class BaseEnv:
             log(f"App update skipped/failed: {e}")
 
         # 4) Close the app LAST (often terminates the process)
-        log("Calling app.close() (process may exit here)")
+        log("Calling app.close()")
         self.app.close()
+
+    def get_observations(self):
+
+        ee_pose_w = self.robot.data.body_state_w[:, self.robot_entity_cfg.body_ids[0], 0:7]
+        ee_pose_w = ee_pose_w.clone()
+        ee_pose_w[:, 0:3] += self.head_offset
+        ee_pose_w[:, 0:3] -= self.scene.env_origins
+
+        obs = {
+            "rgb": self.camera.data.output['rgb'].clone(),
+            "head_pose": ee_pose_w.clone()
+        }
+        return obs
+        
