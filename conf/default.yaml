@@ -1,0 +1,22 @@
+launch_app:
+  renderer: RayTracedLighting
+  # renderer: PathTracing
+  # samples_per_pixel_per_frame: 4
+  # use_denoiser: true
+
+env:
+  __target__: sim_scaling.task.pusht.PushTEnv
+  args:
+    seed: 0
+    num_envs: 256
+    env_spacing: 4.0
+    step_limit: 3000
+
+policy:
+  __target__: sim_scaling.policy.pusht_motion_planning.PushTMotionPlanningPolicy
+  args: {}
+
+manager:
+  __target__: sim_scaling.manager.base_manager.BaseManager
+  args:
+    num_iter: 3000

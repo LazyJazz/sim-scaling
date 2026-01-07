@@ -1,0 +1,4 @@
+object:
+  _target_: classes.ClassA
+  name: TestName
+  age: 30
