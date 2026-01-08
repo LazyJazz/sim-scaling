@@ -4,6 +4,10 @@ import numpy as np
 import torch
 import sim_scaling.task.launch
 
+
+from pxr import Usd, UsdGeom
+import omni
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
 from isaaclab.assets.rigid_object import RigidObjectCfg, RigidObject, RigidObjectData
@@ -23,7 +27,7 @@ from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
 
 class BaseEnv:
-    def __init__(self, seed=0, num_envs=1, env_spacing=4.0, step_limit=2000, **kargs):
+    def __init__(self, seed=0, num_envs=1, env_spacing=4.0, step_limit=2000, gravity=9.81, **kargs):
         self.seed = seed
         self.step_limit = step_limit
 
@@ -32,6 +36,7 @@ class BaseEnv:
 
         self.app = app_launcher.app
         self.sim_cfg = sim_utils.SimulationCfg(dt=0.01, device=args.device)
+        self.sim_cfg.gravity[2] = -gravity
         self.sim = sim_utils.SimulationContext(self.sim_cfg)
         self.device = self.sim.device
 
@@ -65,6 +70,8 @@ class BaseEnv:
         self.success_record = {}
         self.success_count = 0
         self.done_count = 0
+
+        self.stage = omni.usd.get_context().get_stage()
 
     def scene_setup(self, num_envs=1, env_spacing=4.0):
         cfg = InteractiveSceneCfg(num_envs=num_envs, env_spacing=env_spacing)

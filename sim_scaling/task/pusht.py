@@ -19,12 +19,14 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
 class PushTEnv(sim_scaling.task.base_env.BaseEnv):
-    def __init__(self, **kargs):
+    def __init__(self, linear_damping=None, **kargs):
         super().__init__(**kargs)
         self.t_shape = self.scene["t_shape"]
         self.t_marker = self.scene["t_marker"]
         self.t_shape: RigidObject
         self.t_marker: RigidObject
+
+        self.linear_damping = linear_damping
 
     def scene_setup(self, num_envs=1, env_spacing=4):
         cfg = super().scene_setup(num_envs, env_spacing)
@@ -89,6 +91,11 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
 
         pos_quat[0:3] += self.scene.env_origins[env_id]
         self.t_shape.write_root_pose_to_sim(pos_quat[None], env_ids=env_id.unsqueeze(0))
+
+        if self.linear_damping is not None:
+            t_shape_prim = self.stage.GetPrimAtPath(f'/World/envs/env_{env_id.item()}/T_shape/T_shape_usd/mesh')
+            lin_damp = self.linear_damping
+            t_shape_prim.GetAttribute('physxRigidBody:linearDamping').Set(lin_damp)
 
         return generator
     

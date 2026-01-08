@@ -6,7 +6,7 @@ parser.add_argument("--renderer", type=str, choices=["RayTracedLighting", "PathT
 parser.add_argument("--samples-per-pixel-per-frame", type=int, default=4, help="Number of samples per pixel per frame.")
 parser.add_argument("--use-denoiser", action="store_true", help="Whether to use denoiser.")
 AppLauncher.add_app_launcher_args(parser)
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 args.enable_cameras=True
 
 app_launcher = None

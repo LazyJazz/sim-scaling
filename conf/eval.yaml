@@ -14,8 +14,10 @@ env:
     linear_damping: 90.0
 
 policy:
-  __target__: sim_scaling.policy.pusht_motion_planning.PushTMotionPlanningPolicy
-  args: {}
+  __target__: sim_scaling.policy.diffusion_policy.DiffusionPolicy
+  args:
+    ckpt_path: ckpt/pusht/rt_10000_100d_0.1/checkpoint_1540000.pt
+    num_inference_timesteps: 10
 
 manager:
   __target__: sim_scaling.manager.base_manager.BaseManager

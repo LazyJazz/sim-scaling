@@ -7,5 +7,4 @@ class BasePolicy:
 
     def get_action(self, obs):
         head_pose = obs["head_pose"]
-        print(f"Head pose: {head_pose}")
         return head_pose.clone()

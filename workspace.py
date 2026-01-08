@@ -1,6 +1,7 @@
 import hydra
 from omegaconf import OmegaConf
 import classes
+import argparse
 
 class Workspace:
     def __init__(self, cfg: OmegaConf):
@@ -17,7 +18,7 @@ class Workspace:
 
         import sim_scaling.policy.base_policy
         policy_cls = hydra.utils.get_class(cfg.policy.__target__)
-        self.policy = policy_cls(**cfg.policy.args)
+        self.policy = policy_cls(device=self.env.device, **cfg.policy.args)
         self.policy: sim_scaling.policy.base_policy.BasePolicy
 
         import sim_scaling.manager.base_manager
@@ -37,7 +38,6 @@ class Workspace:
         
         self.env.close()
             
-
 @hydra.main(version_base=None, config_path="conf", config_name="default")
 def main(cfg: OmegaConf):
     OmegaConf.resolve(cfg)
