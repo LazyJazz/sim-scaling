@@ -12,11 +12,12 @@ env:
     env_spacing: 4.0
     step_limit: 3000
     linear_damping: 90.0
+    gravity: 19.62
 
 policy:
   __target__: sim_scaling.policy.diffusion_policy.DiffusionPolicy
   args:
-    ckpt_path: ckpt/pusht/rt_10000_100d_0.1/checkpoint_1540000.pt
+    ckpt_path: ckpt/pusht/rt10000/checkpoint_1600000.pt
     num_inference_timesteps: 10
 
 manager:

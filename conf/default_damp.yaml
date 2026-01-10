@@ -11,6 +11,8 @@ env:
     num_envs: 256
     env_spacing: 40.0
     step_limit: 3000
+    linear_damping: 90.0
+    gravity: 19.62
 
 policy:
   __target__: sim_scaling.policy.pusht_motion_planning.PushTMotionPlanningPolicy

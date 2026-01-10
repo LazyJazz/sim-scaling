@@ -1,0 +1,27 @@
+dataset:
+  __target__: sim_scaling.util.dataset.ImageDataset
+  args:
+    path: data/pusht_rt4000.zarr
+
+val_dataset:
+  __target__: sim_scaling.util.dataset.ImageDataset
+  args:
+    path: data/pusht_rt100_val.zarr
+
+training:
+  lr: 0.0001
+  lr_min: 0.0
+  num_epochs: 100
+  batch_size: 64
+  num_workers: 32
+  total_steps: 1600000
+  checkpoint_interval: 10000
+
+policy:
+  __target__: sim_scaling.policy.diffusion.policy.DiffusionPolicy
+  args:
+    n_obs: 2
+    n_actions: 8
+    num_train_timesteps: 100
+    num_inference_timesteps: 10
+    pretrained: true

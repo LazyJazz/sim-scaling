@@ -36,7 +36,7 @@ class BaseEnv:
 
         self.app = app_launcher.app
         self.sim_cfg = sim_utils.SimulationCfg(dt=0.01, device=args.device)
-        self.sim_cfg.gravity[2] = -gravity
+        self.sim_cfg.gravity = (0.0, 0.0, -gravity)
         self.sim = sim_utils.SimulationContext(self.sim_cfg)
         self.device = self.sim.device
 

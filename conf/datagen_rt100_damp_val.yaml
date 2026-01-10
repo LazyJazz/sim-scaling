@@ -7,16 +7,19 @@ launch_app:
 env:
   __target__: sim_scaling.task.pusht.PushTEnv
   args:
-    seed: 0
-    num_envs: 256
+    seed: 1000000000
+    num_envs: 16
     env_spacing: 40.0
-    step_limit: 3000
+    step_limit: 2000
+    linear_damping: 90.0
+    gravity: 19.62
 
 policy:
   __target__: sim_scaling.policy.pusht_motion_planning.PushTMotionPlanningPolicy
   args: {}
 
 manager:
-  __target__: sim_scaling.manager.base_manager.BaseManager
+  __target__: sim_scaling.manager.datagen_manager.DataGenManager
   args:
-    num_iter: 3000
+    path: ./data/pusht_rt100_damp_val.zarr
+    succ_traj: 100

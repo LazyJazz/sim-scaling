@@ -1,6 +1,5 @@
 import hydra
 from omegaconf import OmegaConf
-import classes
 import argparse
 
 class Workspace:
@@ -34,15 +33,19 @@ class Workspace:
             self.env.step()
             self.manager.step(obs, action)
 
-            print(f"Step {self.manager.iter}: Success Rate = {self.env.get_success_rate():.3f}")
+            print(f"{self.manager}")
         
         self.env.close()
             
-@hydra.main(version_base=None, config_path="conf", config_name="default")
 def main(cfg: OmegaConf):
     OmegaConf.resolve(cfg)
     workspace = Workspace(cfg)
     workspace.run()
 
 if __name__ == "__main__":
-    main()
+    # Load from conf/default.yaml to cfg
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="conf/default.yaml", help="Path to the config file.")
+    args, _ = parser.parse_known_args()
+    cfg = OmegaConf.load(args.config)
+    main(cfg)

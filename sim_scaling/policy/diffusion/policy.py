@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import time
 
 class DiffusionPolicy(nn.Module):
-    def __init__(self, device, n_obs=2, n_actions=8, num_train_timesteps=100, num_inference_timesteps=None):
+    def __init__(self, device, n_obs=2, n_actions=8, num_train_timesteps=100, num_inference_timesteps=None, pretrained=False):
         super(DiffusionPolicy, self).__init__()
         self.device = device
         self.n_obs = n_obs
@@ -24,7 +24,7 @@ class DiffusionPolicy(nn.Module):
             variance_type="fixed_small",
             clip_sample=True
         )
-        self.encoder = ResNet18SpatialSoftmax(num_keypoints=64, pretrained=False).to(device)
+        self.encoder = ResNet18SpatialSoftmax(num_keypoints=64, pretrained=pretrained).to(device)
         self.model = ConditionalUnet1D(
             input_dim=3,
             local_cond_dim=None,

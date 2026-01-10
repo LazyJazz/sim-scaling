@@ -17,3 +17,6 @@ class BaseManager:
 
     def should_terminate(self):
         return self.iter > self.num_iter
+    
+    def __repr__(self):
+        return f"Iter.{self.iter}/{self.num_iter}: success_count: {self.env.success_count}, done_count: {self.env.done_count}, success_rate: {self.env.get_success_rate():.3f}"
