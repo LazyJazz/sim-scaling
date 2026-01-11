@@ -15,7 +15,11 @@ training:
   batch_size: 64
   num_workers: 32
   total_steps: 1600000
+  checkpoint_path: ckpt/default
   checkpoint_interval: 10000
+  wandb:
+    project: cotrain_scaling_law
+    run_name: train_default
 
 policy:
   __target__: sim_scaling.policy.diffusion.policy.DiffusionPolicy
