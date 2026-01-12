@@ -15,11 +15,11 @@ env:
 policy:
   __target__: sim_scaling.policy.diffusion_policy.DiffusionPolicy
   args:
-    ckpt_path: ckpt/default/latest.pt
+    ckpt_path: ckpt/default/best_val.pt
     num_inference_timesteps: 10
 
 manager:
   __target__: sim_scaling.manager.eval_manager.EvalManager
   args:
     num_eval_envs: 1000
-    save_path: result/eval_default
+    save_path: result/eval_default_best

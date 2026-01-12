@@ -12,6 +12,9 @@ env:
     env_spacing: 40.0
     step_limit: 3000
 
+    linear_damping: 90.0
+    gravity: 19.62
+
 policy:
   __target__: sim_scaling.policy.diffusion_policy.DiffusionPolicy
   args:
@@ -22,4 +25,4 @@ manager:
   __target__: sim_scaling.manager.eval_manager.EvalManager
   args:
     num_eval_envs: 1000
-    save_path: result/eval_default
+    save_path: result/eval_default_damp

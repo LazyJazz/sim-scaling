@@ -28,6 +28,7 @@ from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
 class BaseEnv:
     def __init__(self, seed=0, num_envs=1, env_spacing=4.0, step_limit=2000, gravity=9.81, **kargs):
+        self.init_seed = seed
         self.seed = seed
         self.step_limit = step_limit
 
@@ -67,7 +68,8 @@ class BaseEnv:
         self.num_steps = torch.zeros(self.scene.num_envs, dtype=torch.int32, device=self.sim.device)
         self.env_seed = [-1] * self.scene.num_envs
         
-        self.success_record = {}
+        self.done_record = {}
+        self.done_queue = []
         self.success_count = 0
         self.done_count = 0
 
@@ -179,6 +181,7 @@ class BaseEnv:
 
     def reset(self, env_ids=None, seed=None):
         if seed is not None:
+            self.init_seed = seed
             self.seed = seed
         if env_ids is None:
             env_ids = torch.arange(self.scene.num_envs, device=self.sim.device)
@@ -251,10 +254,13 @@ class BaseEnv:
                 if self.success[reset_env_id]:
                     self.success_count += 1
                 self.done_count += 1
-                self.success_record[int(reset_env_id.item())] = {
+                done_event = {
+                    "seed": self.env_seed[reset_env_id],
                     "success": self.success[reset_env_id].item(),
                     "num_steps": self.num_steps[reset_env_id].item(),
                 }
+                self.done_record[self.env_seed[reset_env_id]] = done_event
+                self.done_queue.append(done_event)
 
             self.reset(env_ids=reset_env_ids)
 
@@ -323,5 +329,5 @@ class BaseEnv:
     def get_success_rate(self):
         return self.success_count / max(1, self.done_count)
     
-    def get_success_record(self):
-        return self.success_record
+    def get_done_record(self):
+        return self.done_record

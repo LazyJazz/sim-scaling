@@ -6,3 +6,5 @@ ckpt/
 wandb/
 outputs/
 tmp/
+eval/
+result/
