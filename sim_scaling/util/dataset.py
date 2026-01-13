@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import zarr
 from torch.utils.data import Dataset
+import hydra
+from omegaconf import OmegaConf 
 
 class ImageDataset(Dataset):
     def __init__(self, path: str, success_only: bool = True, n_obs=2, n_actions=8):
@@ -46,6 +48,45 @@ class ImageDataset(Dataset):
         actions = self.action[env_id, step_id: step_id + self.n_actions]
         # print(f"images shape: {images.shape}, head_poses shape: {head_poses.shape}, actions shape: {actions.shape}")
         return images, head_poses[:, :3], actions[:, :3]
+
+class MixDataset(Dataset):
+    def __init__(self, dataset1: OmegaConf, dataset2: OmegaConf, ratio: float, length: int, **kargs):
+        self.dataset1_cls = hydra.utils.get_class(dataset1.__target__)
+        self.dataset1 = self.dataset1_cls(**dataset1.args)
+        self.dataset2_cls = hydra.utils.get_class(dataset2.__target__)
+        self.dataset2 = self.dataset2_cls(**dataset2.args)
+        self.ratio = ratio
+        self.length = length
+        self.length1 = int(self.length * self.ratio)
+        self.length2 = self.length - self.length1
+        
+    def __len__(self):
+        return self.length
+    
+    def __getitem__(self, idx):
+        if idx < self.length1:
+            idx1 = idx % len(self.dataset1)
+            return self.dataset1[idx1]
+        else:
+            idx2 = (idx - self.length1) % len(self.dataset2)
+            return self.dataset2[idx2]
+
+class ConcatDataset(Dataset):
+    def __init__(self, dataset1: OmegaConf, dataset2: OmegaConf, **kargs):
+        self.dataset1_cls = hydra.utils.get_class(dataset1.__target__)
+        self.dataset1 = self.dataset1_cls(**dataset1.args)
+        self.dataset2_cls = hydra.utils.get_class(dataset2.__target__)
+        self.dataset2 = self.dataset2_cls(**dataset2.args)
+        
+    def __len__(self):
+        return len(self.dataset1) + len(self.dataset2)
+    
+    def __getitem__(self, idx):
+        if idx < len(self.dataset1):
+            return self.dataset1[idx]
+        else:
+            idx2 = idx - len(self.dataset1)
+            return self.dataset2[idx2]
 
 if __name__ == "__main__":
     dataset = ImageDataset("./data/pusht_rt4000.zarr")
