@@ -33,7 +33,8 @@ class Workspace:
             self.env.step()
             self.manager.step(obs, action)
 
-            print(f"{self.manager}")
+            if self.manager.__repr__() != "":
+                print(f"{self.manager}")
         
         self.env.close()
             
