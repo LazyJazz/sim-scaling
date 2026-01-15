@@ -1,0 +1,23 @@
+launch_app:
+  renderer: RayTracedLighting
+  # renderer: PathTracing
+  # samples_per_pixel_per_frame: 4
+  # use_denoiser: true
+
+env:
+  __target__: sim_scaling.task.pusht.PushTEnv
+  args:
+    seed: 0
+    num_envs: 1
+    env_spacing: 40.0
+    step_limit: 2000
+
+policy:
+  __target__: sim_scaling.policy.base_policy.BasePolicy
+  args: {}
+
+manager:
+  __target__: sim_scaling.manager.usd_manip.USDManipManager
+  args:
+    path: ./data/pusht_rt4000.zarr
+    succ_traj: 4000
