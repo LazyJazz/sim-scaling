@@ -1,0 +1,25 @@
+launch_app:
+  renderer: RayTracedLighting
+  # renderer: PathTracing
+  # samples_per_pixel_per_frame: 4
+  # use_denoiser: true
+
+env:
+  __target__: sim_scaling.task.pusht.PushTEnv
+  args:
+    seed: 2000000000
+    num_envs: 256
+    env_spacing: 40.0
+    step_limit: 3000
+
+policy:
+  __target__: sim_scaling.policy.diffusion_policy.DiffusionPolicy
+  args:
+    ckpt_path: ckpt/cotrain_4000_100/best_val.pt
+    num_inference_timesteps: 10
+
+manager:
+  __target__: sim_scaling.manager.eval_manager.EvalManager
+  args:
+    num_eval_envs: 1000
+    save_path: result/eval_cotrain_4000_100_best

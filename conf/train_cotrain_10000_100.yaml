@@ -1,0 +1,49 @@
+dataset:
+  __target__: sim_scaling.util.dataset.MixDataset
+  args:
+    dataset1:
+      dataset:
+      __target__: sim_scaling.util.dataset.ImageDataset
+      args:
+        path: data/pusht_rt10000.zarr
+    dataset2:
+      __target__: sim_scaling.util.dataset.ImageDataset
+      args:
+        path: data/pusht_rt100_damp.zarr
+    ratio: 0.75
+    length: 102400000
+
+val_dataset:
+  __target__: sim_scaling.util.dataset.ConcatDataset
+  args:
+    dataset1:
+      __target__: sim_scaling.util.dataset.ImageDataset
+      args:
+        path: data/pusht_rt100_val.zarr
+
+    dataset2:
+      __target__: sim_scaling.util.dataset.ImageDataset
+      args:
+        path: data/pusht_rt100_damp_val.zarr
+
+training:
+  lr: 0.0001
+  lr_min: 0.0
+  num_epochs: 100
+  batch_size: 64
+  num_workers: 32
+  total_steps: 1600000
+  checkpoint_path: ckpt/cotrain_10000_100
+  checkpoint_interval: 10000
+  wandb:
+    project: cotrain_scaling_law
+    run_name: train_cotrain_10000_100
+
+policy:
+  __target__: sim_scaling.policy.diffusion.policy.DiffusionPolicy
+  args:
+    n_obs: 2
+    n_actions: 8
+    num_train_timesteps: 100
+    num_inference_timesteps: 10
+    pretrained: true
