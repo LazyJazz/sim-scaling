@@ -116,7 +116,7 @@ class TrainWorkspace:
                             "best_val_loss": self.best_val_loss,
                             "best_val_loss_step": self.best_val_loss_step
                         }
-                        checkpoint_path = os.path.join(self.cfg.training.checkpoint_path, f"metadata.pt")
+                        checkpoint_path = os.path.join(self.cfg.training.checkpoint_path, f"metadata.json")
                         with open(checkpoint_path, 'w') as f:
                             json.dump(metadata, f)
 

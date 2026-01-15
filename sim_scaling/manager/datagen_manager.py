@@ -1,3 +1,4 @@
+import time
 import torch
 import numpy as np
 import sim_scaling.policy.base_policy
@@ -18,4 +19,4 @@ class DataGenManager(sim_scaling.manager.base_manager.BaseManager):
         return self.env.success_count >= self.succ_traj
     
     def __repr__(self):
-        return f"Iter.{self.iter}: success_count: {self.env.success_count}/{self.succ_traj}, done_count: {self.env.done_count}, success_rate: {self.env.get_success_rate():.3f}"
+        return f"Iter.{self.iter}: success_count: {self.env.success_count}/{self.succ_traj}, done_count: {self.env.done_count}, success_rate: {self.env.get_success_rate():.3f}, step_duration: {self.duration:.3f}s"

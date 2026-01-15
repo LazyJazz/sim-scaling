@@ -18,6 +18,7 @@ policy:
 
 manager:
   __target__: sim_scaling.manager.datagen_manager.DataGenManager
+  # __target__: sim_scaling.manager.base_manager.BaseManager
   args:
     path: ./data/pusht_rt10000.zarr
     succ_traj: 10000

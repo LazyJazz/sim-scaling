@@ -9,6 +9,7 @@ class ZarrRecorder:
     def __init__(self, path):
         self.z_handle = zarr.open(path, mode='w')
         self.arrays = {}
+        self.frame_count = 0
 
     def record_frame(self, obs: dict, action: torch.Tensor):
         merged_obs = {**obs, "action": action}
@@ -30,10 +31,12 @@ class ZarrRecorder:
 
         for key, observation in merged_obs.items():
             if key not in self.arrays:
-                shape = (observation.shape[0], 0) + observation.shape[1:]
-                chunks = (1, 1) + observation.shape[1:]
-                if key != "rgb":
-                    chunks = (observation.shape[0], 16) + observation.shape[1:]
+                shape = (observation.shape[0], 1048576) + observation.shape[1:]
+                chunks = (observation.shape[0], 8) + observation.shape[1:]
+                if key == "rgb":
+                    chunks = (1, 1) + observation.shape[1:]
+                if key == "done":
+                    chunks = (observation.shape[0], 128) + observation.shape[1:]
                 dtype, fill_value = torch_type_to_zarr_type_and_default_value(observation)
                 self.arrays[key] = self.z_handle.create_array(
                     key,
@@ -43,9 +46,7 @@ class ZarrRecorder:
                     fill_value=fill_value,
                     compressors=zarr.codecs.BloscCodec(cname="zstd", clevel=3, shuffle=zarr.codecs.BloscShuffle.shuffle)
                 )
-            arr: zarr.Array = self.arrays[key]
-            old_shape = arr.shape
-            new_shape = (old_shape[0], old_shape[1] + 1) + old_shape[2:]
-            arr.resize(new_shape)
-            arr[:, -1, ...] = observation.cpu().numpy()
+            self.arrays[key][:, self.frame_count, ...] = observation.cpu().numpy()
+        self.frame_count += 1
+
             
