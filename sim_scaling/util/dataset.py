@@ -4,6 +4,7 @@ import zarr
 from torch.utils.data import Dataset
 import hydra
 from omegaconf import OmegaConf 
+from tqdm import trange
 
 class ImageDataset(Dataset):
     def __init__(self, path: str, success_only: bool = True, n_obs=2, n_actions=8):
@@ -27,7 +28,7 @@ class ImageDataset(Dataset):
         done_idx = np.stack(done_idx, axis=1)
         num_steps = self.num_steps[done_idx[:,0], done_idx[:,1]]
         self.indices = []
-        for i in range(len(done_idx)):
+        for i in trange(len(done_idx)):
             env_id = done_idx[i, 0]
             step_id = done_idx[i, 1]
             if success_only and success[env_id, step_id] == 0:

@@ -33,20 +33,26 @@ class ZarrRecorder:
             if key not in self.arrays:
                 shape = (observation.shape[0], 1048576) + observation.shape[1:]
                 chunks = (observation.shape[0], 8) + observation.shape[1:]
+                shards = (observation.shape[0], 8) + observation.shape[1:]
                 if key == "rgb":
                     chunks = (1, 1) + observation.shape[1:]
-                if key == "done":
+                    shards = (observation.shape[0], 1) + observation.shape[1:]
+                if key == "done" or key == "success":
                     chunks = (observation.shape[0], 128) + observation.shape[1:]
+                    shards = (observation.shape[0], 128) + observation.shape[1:]
                 dtype, fill_value = torch_type_to_zarr_type_and_default_value(observation)
                 self.arrays[key] = self.z_handle.create_array(
                     key,
                     shape=shape,
                     chunks=chunks,
+                    shards=shards,
                     dtype=dtype,
                     fill_value=fill_value,
-                    compressors=zarr.codecs.BloscCodec(cname="zstd", clevel=3, shuffle=zarr.codecs.BloscShuffle.shuffle)
+                    compressors=zarr.codecs.BloscCodec(cname="zstd", clevel=3, shuffle=zarr.codecs.BloscShuffle.shuffle),
+                    chunk_key_encoding={"name": "default", "separator": "."}
                 )
             self.arrays[key][:, self.frame_count, ...] = observation.cpu().numpy()
         self.frame_count += 1
 
-            
+    def close(self):
+        pass

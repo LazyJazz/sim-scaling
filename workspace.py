@@ -35,7 +35,7 @@ class Workspace:
 
             if self.manager.__repr__() != "":
                 print(f"{self.manager}")
-        
+        self.manager.close()
         self.env.close()
             
 def main(cfg: OmegaConf):
