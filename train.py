@@ -128,6 +128,9 @@ class TrainWorkspace:
                         }, step=self.step_count)
 
                         self.policy.train()
+                        
+                    if self.step_count >= self.cfg.training.total_steps:
+                        break
             epoch_idx += 1
         
         # Finalize training

@@ -6,6 +6,7 @@ import sim_scaling.task.base_env
 import time
 
 from pxr import Usd, UsdGeom
+import pxr
 import omni
 
 class USDManipManager(sim_scaling.manager.base_manager.BaseManager):
@@ -82,7 +83,21 @@ class USDManipManager(sim_scaling.manager.base_manager.BaseManager):
                     print(f"No attribute named '{attr_name}' found on prim {self.current_prim.GetPath()}.")
                 else:
                     import ast
-                    attr.Set(ast.literal_eval(value))
+
+                    type_of_attr = type(attr.Get())
+                    value = ast.literal_eval(value)
+                    if type_of_attr == pxr.Gf.Quatd:
+                        value = pxr.Gf.Quatd(*value)
+                    elif type_of_attr == pxr.Gf.Vec3d:
+                        value = pxr.Gf.Vec3d(*value)
+                    elif type_of_attr == pxr.Gf.Vec3f:
+                        value = pxr.Gf.Vec3f(*value)
+                    elif type_of_attr == pxr.Gf.Vec2f:
+                        value = pxr.Gf.Vec2f(*value)
+                    elif type_of_attr == pxr.Gf.Vec2d:
+                        value = pxr.Gf.Vec2d(*value)
+
+                    attr.Set(value)
                     print(f"Set attribute '{attr_name}' to {value} on prim {self.current_prim.GetPath()}.")
         
 

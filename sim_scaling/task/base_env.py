@@ -31,6 +31,7 @@ class BaseEnv:
         self.init_seed = seed
         self.seed = seed
         self.step_limit = step_limit
+        self.kargs = kargs
 
         app_launcher = sim_scaling.task.launch.get_app_launcher()
         args = sim_scaling.task.launch.get_launch_args()
@@ -154,14 +155,25 @@ class BaseEnv:
             init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.0)),
         )
 
+        light_intensity = 300.0
+        if "light_intensity" in self.kargs:
+            light_intensity = self.kargs["light_intensity"]
+
         cfg.dome_light = AssetBaseCfg(
-            prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=300.0, color=(0.75, 0.75, 0.75))
+            prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=light_intensity, color=(0.75, 0.75, 0.75))
         )
+
+        spherical_light_pos = (-2.0, -1.0, 3.0)
+        if "light_pos" in self.kargs:
+            if self.kargs["light_pos"] == "reverse":
+                spherical_light_pos = (2.0, 1.0, 3.0)
+            else:
+                spherical_light_pos = tuple(self.kargs["light_pos"])
 
         cfg.spherical_light = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Spherical_Light",
             spawn=sim_utils.SphereLightCfg(intensity=3000000.0, color=(1.0, 1.0, 1.0), radius=0.03),
-            init_state=AssetBaseCfg.InitialStateCfg(pos=(-2.0, -1.0, 3.0))
+            init_state=AssetBaseCfg.InitialStateCfg(pos=spherical_light_pos)
         )
 
         cfg.camera = TiledCameraCfg(

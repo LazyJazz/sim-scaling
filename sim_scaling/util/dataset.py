@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 from tqdm import trange
 
 class ImageDataset(Dataset):
-    def __init__(self, path: str, success_only: bool = True, n_obs=2, n_actions=8):
+    def __init__(self, path: str, success_only: bool = True, n_obs=2, n_actions=8, num_traj=None):
         self.success_only = success_only
         self.z_handle = zarr.open(path, mode='r')
         self.image_rgb = self.z_handle['rgb']
@@ -26,8 +26,14 @@ class ImageDataset(Dataset):
         done_idx = np.where(done)
         done_idx = list(done_idx)
         done_idx = np.stack(done_idx, axis=1)
+
+        # sort done_idx, second component has first priority and first component the second
+        done_idx = done_idx[np.lexsort((done_idx[:, 0], done_idx[:, 1]))]
+
         num_steps = self.num_steps[done_idx[:,0], done_idx[:,1]]
         self.indices = []
+        traj_count = 0
+
         for i in trange(len(done_idx)):
             env_id = done_idx[i, 0]
             step_id = done_idx[i, 1]
@@ -36,6 +42,11 @@ class ImageDataset(Dataset):
             num_steps_i = num_steps[i]
             for start_step in range(self.n_obs - 1, num_steps_i - self.n_actions + 2):
                     self.indices.append((env_id, start_step + step_id - num_steps_i))
+            
+            traj_count += 1
+            if num_traj is not None:
+                if traj_count >= num_traj:
+                    break
         
         self.indices = np.array(self.indices)
         

@@ -8,3 +8,7 @@ outputs/
 tmp/
 eval/
 result/
+
+conf/datagen_*.yaml
+conf/train_*.yaml
+conf/eval_*
