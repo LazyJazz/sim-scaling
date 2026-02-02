@@ -3,9 +3,11 @@ import os
 import numpy as np
 import torch
 import sim_scaling.task.launch
+import quaternion
+from sim_scaling.util.quat_util import *
 
 
-from pxr import Usd, UsdGeom
+from pxr import Usd, UsdGeom, Gf, Sdf
 import omni
 
 import isaaclab.sim as sim_utils
@@ -27,11 +29,12 @@ from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
 
 class BaseEnv:
-    def __init__(self, seed=0, num_envs=1, env_spacing=4.0, step_limit=2000, gravity=9.81, **kargs):
+    def __init__(self, seed=0, num_envs=1, env_spacing=4.0, step_limit=2000, gravity=9.81, visual_random=False, **kargs):
         self.init_seed = seed
         self.seed = seed
         self.step_limit = step_limit
         self.kargs = kargs
+        self.visual_random = visual_random
 
         app_launcher = sim_scaling.task.launch.get_app_launcher()
         args = sim_scaling.task.launch.get_launch_args()
@@ -131,7 +134,7 @@ class BaseEnv:
         cfg.table = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Table",
             spawn=sim_utils.CuboidCfg(
-                size=(2.0, 2.0, 0.1),
+                size=(1.0, 2.0, 0.1),
                 collision_props=sim_utils.CollisionPropertiesCfg(
                     collision_enabled=True
                 ),
@@ -141,12 +144,12 @@ class BaseEnv:
                     max_angular_velocity=0.0
                 ),
                 visual_material=sim_utils.PreviewSurfaceCfg(
-                    diffuse_color=(0.02, 0.1, 0.02),
+                    diffuse_color=(0.1, 0.3, 0.2),
                     roughness=1.0
                 )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.0, 0.0, 0.05))
+                    pos=(0.22, 0.0, 0.05))
         )
 
         cfg.ground = AssetBaseCfg(
@@ -155,7 +158,7 @@ class BaseEnv:
             init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.0)),
         )
 
-        light_intensity = 300.0
+        light_intensity = 30.0
         if "light_intensity" in self.kargs:
             light_intensity = self.kargs["light_intensity"]
 
@@ -172,7 +175,7 @@ class BaseEnv:
 
         cfg.spherical_light = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Spherical_Light",
-            spawn=sim_utils.SphereLightCfg(intensity=3000000.0, color=(1.0, 1.0, 1.0), radius=0.03),
+            spawn=sim_utils.SphereLightCfg(intensity=300000.0, color=(1.0, 1.0, 1.0), radius=0.1),
             init_state=AssetBaseCfg.InitialStateCfg(pos=spherical_light_pos)
         )
 
@@ -181,14 +184,16 @@ class BaseEnv:
             width=160,
             height=160,
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=45.0, focus_distance=400.0, horizontal_aperture=20.0, clipping_range=(0.1, 1.0e5)
+                focal_length=1.0, focus_distance=400.0, horizontal_aperture=0.9, clipping_range=(0.1, 1.0e5)
             ),
             offset=TiledCameraCfg.OffsetCfg(
-                pos=(2.0, 0.0, 1.5),
+                pos=(1.2, 0.0, 0.85),
                 rot=(0.64597, 0.28761, 0.28761, 0.64597),
                 convention="opengl",
             )
         )
+        # (0.91355, 0.0, 0.40674, 0.0)
+        # (0.7071, 0.0, 0.0, 0.7071)
         return cfg
 
     def reset(self, env_ids=None, seed=None):
@@ -235,6 +240,41 @@ class BaseEnv:
         self.env_seed[env_id] = seed
 
         generator = np.random.default_rng(seed)
+
+        if self.visual_random:
+            # randomize light color and intensity
+            gen = np.random.default_rng(seed ^ 0x12345678)
+            quat = make_quat(0 + gen.uniform(-5, 5), [0, 1, 0]) * make_quat(48 + gen.uniform(-2, 2), [0, 1, 0]) * make_quat(90, [0, 0, 1])
+            camera_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Camera")
+            camera_prim.GetAttribute("xformOp:orient").Set(Gf.Quatd(quat.w, quat.x, quat.y, quat.z))
+            pos = gen.uniform(-0.05, 0.05, size=(3,))
+            pos[2] += 0.85
+            pos[0] += 1.2
+            camera_prim.GetAttribute("xformOp:translate").Set(Gf.Vec3d(pos[0], pos[1], pos[2]))
+            aperture = gen.uniform(0.8, 0.9)
+            camera_prim.GetAttribute("horizontalAperture").Set(aperture)
+            camera_prim.GetAttribute("verticalAperture").Set(aperture)
+
+            light_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Spherical_Light")
+            # rand position in [-2.0, 2.0] * [-2.0, 2.0] * [2.5, 4.0]
+            pos = gen.uniform([-2.0, -2.0, 2.5], [2.0, 2.0, 4.0])
+            light_prim.GetAttribute("xformOp:translate").Set(Gf.Vec3d(pos[0], pos[1], pos[2]))
+            power = gen.uniform(300, 3000)
+            radius = gen.uniform(0.02, 0.3)
+            light_prim.GetAttribute("inputs:intensity").Set(power / (radius * radius))
+            light_prim.GetAttribute("inputs:radius").Set(radius)
+
+            table_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Table/geometry/material/Shader")
+            table_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(gen.uniform(0.05, 0.3), gen.uniform(0.2, 0.5), gen.uniform(0.1, 0.4)))
+            table_shader_prim.GetAttribute("inputs:roughness").Set(0.1)
+            if not table_shader_prim.GetAttribute("inputs:specularColor").IsValid():
+                table_shader_prim.CreateAttribute("inputs:specularColor", Sdf.ValueTypeNames.Color3f)
+            table_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(0.3, 0.3, 0.3))
+            if not table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").IsValid():
+                table_shader_prim.CreateAttribute("inputs:useSpecularWorkflow", Sdf.ValueTypeNames.Int)
+            table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(1)
+
+
         return generator
     
     def step(self):
@@ -333,6 +373,14 @@ class BaseEnv:
             "success": self.success.clone(),
             "num_steps": self.num_steps.clone(),
         }
+
+        # show first image in obs['rgb'] with matplotlib asynchronously
+        # import matplotlib.pyplot as plt
+        # plt.imshow(obs['rgb'][0].cpu().numpy())
+        # plt.axis('off')
+        # plt.show(block=False)
+        # plt.pause(0.001)
+
         return obs
         
     def set_action(self, action):

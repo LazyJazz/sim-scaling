@@ -100,6 +100,20 @@ class USDManipManager(sim_scaling.manager.base_manager.BaseManager):
                     attr.Set(value)
                     print(f"Set attribute '{attr_name}' to {value} on prim {self.current_prim.GetPath()}.")
         
+        if cmd == "save_vis":
+            imgs = obs['rgb']
+            b, h, w, c = imgs.shape
+            for i in range(b):
+                path = f"imgs/{self.iter}"
+                # create directory if not exists
+                import os
+                os.makedirs(path, exist_ok=True)
+                img = imgs[i].cpu().numpy()
+                from PIL import Image
+                im = Image.fromarray(img)
+                im.save(f"{path}/{i}.png")
+            print(f"Saved {b} images to imgs/{self.iter}/")
+        
 
     def should_terminate(self):
         return self.exit_flag

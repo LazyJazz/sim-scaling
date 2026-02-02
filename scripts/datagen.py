@@ -2,31 +2,6 @@ import argparse
 import os
 from omegaconf import OmegaConf
 
-
-# launch_app:
-#   renderer: RayTracedLighting
-#   # renderer: PathTracing
-#   # samples_per_pixel_per_frame: 4
-#   # use_denoiser: true
-
-# env:
-#   __target__: sim_scaling.task.pusht.PushTEnv
-#   args:
-#     seed: 0
-#     num_envs: 16
-#     env_spacing: 40.0
-#     step_limit: 2000
-
-# policy:
-#   __target__: sim_scaling.policy.pusht_motion_planning.PushTMotionPlanningPolicy
-#   args: {}
-
-# manager:
-#   __target__: sim_scaling.manager.datagen_manager.DataGenManager
-#   args:
-#     path: ./data/pusht_rt100.zarr
-#     succ_traj: 100
-
 def main():
 
     parser = argparse.ArgumentParser()
@@ -35,32 +10,18 @@ def main():
     parser.add_argument('--pt', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--val', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--damp', action='store_true', help='Whether to generate validation data')
+    parser.add_argument('--vis-rand', action='store_true', help='Whether to generate validation data')
     args = parser.parse_args()
 
     cfg = OmegaConf.create()
 
     suffix = ""
 
-    if args.pt:
-        suffix += "pt"
-        cfg['launch_app'] = {
-            'renderer': 'PathTracing',
-            'samples_per_pixel_per_frame': 4,
-            'use_denoiser': True
-        }
-    else:
-        suffix += "rt"
-        cfg['launch_app'] = {
-            'renderer': 'RayTracedLighting'
-        }
-
     num_envs = args.num_envs
     if num_envs is None:
         num_envs = 2
         while num_envs * 8 < args.traj and num_envs < 256:
             num_envs *= 2
-    
-    suffix += f"{args.traj}"
 
     cfg['env'] = {
         "__target__": 'sim_scaling.task.pusht.PushTEnv',
@@ -72,10 +33,31 @@ def main():
         }
     }
 
+    if args.pt:
+        suffix += "pt"
+        cfg['launch_app'] = {
+            'renderer': 'PathTracing',
+            'samples_per_pixel_per_frame': 4,
+            'use_denoiser': True
+        }
+        cfg['env']['args']['light_intensity'] = 100.0
+    else:
+        suffix += "rt"
+        cfg['launch_app'] = {
+            'renderer': 'RayTracedLighting'
+        }
+
+    
+    suffix += f"{args.traj}"
+
     if args.damp:
         suffix += "d"
         cfg['env']['args']['linear_damping'] = 90.0
         cfg['env']['args']['gravity'] = 19.62
+        
+    if args.vis_rand:
+        suffix += "v"
+        cfg['env']['args']['visual_random'] = True
 
     if args.val:
         suffix += "_val"

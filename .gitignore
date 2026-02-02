@@ -12,3 +12,4 @@ result/
 conf/datagen_*.yaml
 conf/train_*.yaml
 conf/eval_*
+imgs/

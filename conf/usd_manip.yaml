@@ -8,9 +8,10 @@ env:
   __target__: sim_scaling.task.pusht.PushTEnv
   args:
     seed: 0
-    num_envs: 1
+    num_envs: 16
     env_spacing: 40.0
     step_limit: 2000
+    visual_random: true
 
 policy:
   __target__: sim_scaling.policy.base_policy.BasePolicy
@@ -18,6 +19,4 @@ policy:
 
 manager:
   __target__: sim_scaling.manager.usd_manip.USDManipManager
-  args:
-    path: ./data/pusht_rt4000.zarr
-    succ_traj: 4000
+  args: {}

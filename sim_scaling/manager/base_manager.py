@@ -7,9 +7,7 @@ import time
 class BaseManager:
     def __init__(self, env: sim_scaling.task.base_env.BaseEnv, policy: sim_scaling.policy.base_policy.BasePolicy, num_iter=2000, **kargs):
         self.env = env
-        self.env: sim_scaling.task.base_env.BaseEnv
         self.policy = policy
-        self.policy: sim_scaling.policy.base_policy.BasePolicy
         self.num_iter = num_iter
         self.iter = 0
         self.last_time = time.time()
