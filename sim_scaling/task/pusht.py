@@ -19,12 +19,13 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
 class PushTEnv(sim_scaling.task.base_env.BaseEnv):
-    def __init__(self, linear_damping=None, **kargs):
+    def __init__(self, linear_damping=None, eval_mode=False, **kargs):
         super().__init__(**kargs)
         self.t_shape = self.scene["t_shape"]
         self.t_shape: RigidObject
 
         self.linear_damping = linear_damping
+        self.eval_mode = eval_mode
 
     def scene_setup(self, num_envs=1, env_spacing=4):
         cfg = super().scene_setup(num_envs, env_spacing)
@@ -119,6 +120,9 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
         dpos = torch.norm(dpos, dim=-1)
         dquat = quat_geodesic_angle(self.t_shape.data.root_pose_w[:, 3:7], self.targ_pose[3:7])  # * quat_conjugate
         # check whether dpos < 0.005 and dquat < 0.05, in tensor
-        success = (dpos < 0.05) & (dquat < 0.05)
+        if self.eval_mode:
+            success = (dpos < 0.05) & (dquat < 0.05)
+        else:
+            success = (dpos < 0.005) & (dquat < 0.05)
         self.done = self.done | success
         self.success = self.success | success
