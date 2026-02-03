@@ -12,6 +12,8 @@ class DataGenManager(sim_scaling.manager.base_manager.BaseManager):
         self.succ_traj = succ_traj
 
     def step(self, obs, action):
+        if (obs['head_pose'][..., :3] == action[..., :3]).all():
+            return  # No movement, skip recording
         super().step(obs, action)
         self.recorder.record_frame(obs, action)
 

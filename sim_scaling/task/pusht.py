@@ -109,7 +109,8 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
     
 
     def step(self):
-        super().step()
+        if not super().step():
+            return False
         def quat_geodesic_angle(q1, q2):
             q1 = q1 / torch.norm(q1, dim=-1, keepdim=True)
             q2 = q2 / torch.norm(q2, dim=-1, keepdim=True)
@@ -126,3 +127,4 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
             success = (dpos < 0.005) & (dquat < 0.05)
         self.done = self.done | success
         self.success = self.success | success
+        return True

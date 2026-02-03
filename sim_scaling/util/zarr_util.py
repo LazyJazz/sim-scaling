@@ -12,6 +12,7 @@ class ZarrRecorder:
         self.frame_count = 0
 
     def record_frame(self, obs: dict, action: torch.Tensor):
+
         merged_obs = {**obs, "action": action}
 
         def torch_type_to_zarr_type_and_default_value(tensor: torch.Tensor):

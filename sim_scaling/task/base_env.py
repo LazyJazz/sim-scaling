@@ -278,6 +278,14 @@ class BaseEnv:
         return generator
     
     def step(self):
+        
+        ee_pose_w = self.robot.data.body_state_w[:, self.robot_entity_cfg.body_ids[0], 0:7]
+        ee_pose_w = ee_pose_w.clone()
+        ee_pose_w[:, 0:3] += self.head_offset
+        ee_pose_w[:, 0:3] -= self.scene.env_origins
+
+        result = not (ee_pose_w[..., :3] == self.ik_commands[..., :3]).all()
+
         self.diff_ik_controller.set_command(self.ik_commands)
         jacobian = self.robot.root_physx_view.get_jacobians()[:, self.ee_jacobi_idx, :, self.robot_entity_cfg.joint_ids]
         ee_pose_w = self.robot.data.body_pose_w[:, self.robot_entity_cfg.body_ids[0]]
@@ -297,7 +305,8 @@ class BaseEnv:
         self.sim.step(render=False)
         self.scene.update(self.sim.get_physics_dt())
         self.sim.render(mode=sim_utils.SimulationContext.RenderMode.FULL_RENDERING)
-        self.num_steps += 1
+        if result:
+            self.num_steps += 1
 
         reset_env_ids = torch.nonzero(self.done).squeeze(-1)
         if len(reset_env_ids) > 0:
@@ -318,6 +327,7 @@ class BaseEnv:
 
         fail = self.num_steps >= self.step_limit
         self.done = self.done | fail
+        return result
 
     def close(self):
         # 0) Make prints appear even if shutdown is abrupt
