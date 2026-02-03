@@ -1,0 +1,21 @@
+env:
+  __target__: sim_scaling.task.pusht.PushTEnv
+  args:
+    seed: 0
+    num_envs: 1
+    env_spacing: 40.0
+    step_limit: 2000
+    linear_damping: 90.0
+    gravity: 19.62
+    visual_random: true
+    eval_mode: true
+launch_app:
+  renderer: RayTracedLighting
+policy:
+  __target__: sim_scaling.policy.joystick_policy.JoystickPolicy
+  args: {}
+manager:
+  __target__: sim_scaling.manager.datagen_manager.DataGenManager
+  args:
+    path: ./data/pusht_rt100dvj.zarr
+    succ_traj: 100

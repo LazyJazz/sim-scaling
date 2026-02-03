@@ -1,0 +1,5 @@
+zarr
+pygame
+numpy-quaternion
+pyrealsense2
+tqdm
