@@ -16,7 +16,7 @@ def main():
 
     cfg = OmegaConf.create()
 
-    suffix = f"{args.dataset1}_{args.dataset2}"
+    suffix = f"{args.dataset}"
     if args.mix_ratio != 0.75:
         suffix += f"_{args.mix_ratio}mix"
     if args.training_step != 1600000:
@@ -42,11 +42,11 @@ def main():
         'batch_size': args.batch_size,
         'num_workers': 32,
         'total_steps': args.training_step,
-        'checkpoint_path': f'ckpt/cotrain_{suffix}',
+        'checkpoint_path': f'ckpt/{suffix}',
         'checkpoint_interval': 10000,
         'wandb': {
             'project': 'cotrain_scaling_law',
-            'run_name': f'train_cotrain_{suffix}'
+            'run_name': f'train_{suffix}'
         }
     }
 

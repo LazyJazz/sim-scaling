@@ -7,9 +7,9 @@ wandb/
 outputs/
 tmp/
 eval/
-result/
+results/
 
 conf/datagen_*.yaml
 conf/train_*.yaml
-conf/eval_*
+conf/eval_*.yaml
 imgs/
