@@ -284,7 +284,7 @@ class BaseEnv:
         ee_pose_w[:, 0:3] += self.head_offset
         ee_pose_w[:, 0:3] -= self.scene.env_origins
 
-        result = not (ee_pose_w[..., :3] == self.ik_commands[..., :3]).all()
+        result = not ((ee_pose_w[..., :3] == self.ik_commands[..., :3]).all() and not self.done.any())
 
         self.diff_ik_controller.set_command(self.ik_commands)
         jacobian = self.robot.root_physx_view.get_jacobians()[:, self.ee_jacobi_idx, :, self.robot_entity_cfg.joint_ids]
@@ -400,4 +400,4 @@ class BaseEnv:
         return self.success_count / max(1, self.done_count)
     
     def get_done_record(self):
-        return self.done_record
+        return self.done_recordTrue

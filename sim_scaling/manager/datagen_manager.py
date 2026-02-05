@@ -1,8 +1,7 @@
 import time
 import torch
 import numpy as np
-import sim_scaling.policy.base_policy
-import sim_scaling.task.base_env
+import sim_scaling.manager.base_manager
 import sim_scaling.util.zarr_util
 
 class DataGenManager(sim_scaling.manager.base_manager.BaseManager):
@@ -12,7 +11,7 @@ class DataGenManager(sim_scaling.manager.base_manager.BaseManager):
         self.succ_traj = succ_traj
 
     def step(self, obs, action):
-        if (obs['head_pose'][..., :3] == action[..., :3]).all():
+        if (obs['head_pose'][..., :3] == action[..., :3]).all() and not obs['done'].any():
             return  # No movement, skip recording
         super().step(obs, action)
         self.recorder.record_frame(obs, action)

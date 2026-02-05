@@ -1,11 +1,9 @@
 import torch
 import numpy as np
-import sim_scaling.policy.base_policy
-import sim_scaling.task.base_env
 import time
 
 class BaseManager:
-    def __init__(self, env: sim_scaling.task.base_env.BaseEnv, policy: sim_scaling.policy.base_policy.BasePolicy, num_iter=2000, **kargs):
+    def __init__(self, env, policy, num_iter=2000, **kargs):
         self.env = env
         self.policy = policy
         self.num_iter = num_iter
@@ -22,7 +20,11 @@ class BaseManager:
         return self.iter > self.num_iter
     
     def __repr__(self):
-        return f"Iter.{self.iter}/{self.num_iter}: success_count: {self.env.success_count}, done_count: {self.env.done_count}, success_rate: {self.env.get_success_rate():.3f}"
+        # f"Iter.{self.iter}/{self.num_iter}: success_count: {self.env.success_count}, done_count: {self.env.done_count}, success_rate: {self.env.get_success_rate():.3f}"
+        result = f"Iter.{self.iter}/{self.num_iter}"
+        if hasattr(self.env, 'success_count'):
+            result += f": success_count: {self.env.success_count}, done_count: {self.env.done_count}, success_rate: {self.env.get_success_rate():.3f}"
+        return result
 
     def close(self):
         pass

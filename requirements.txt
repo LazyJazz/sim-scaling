@@ -3,3 +3,5 @@ pygame
 numpy-quaternion
 pyrealsense2
 tqdm
+websockets
+websocket

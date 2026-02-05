@@ -61,7 +61,7 @@ def main():
         }
     }
 
-    path = f"conf/train_cotrain_{suffix}.yaml"
+    path = f"conf/train_{suffix}.yaml"
     OmegaConf.save(cfg, path)
 
     command = f"python train.py --config {path}"
