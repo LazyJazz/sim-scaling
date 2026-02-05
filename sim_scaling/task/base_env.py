@@ -78,6 +78,7 @@ class BaseEnv:
         self.done_count = 0
 
         self.stage = omni.usd.get_context().get_stage()
+        self.light_changing_counter = 0
 
     def scene_setup(self, num_envs=1, env_spacing=4.0):
         cfg = InteractiveSceneCfg(num_envs=num_envs, env_spacing=env_spacing)
@@ -158,12 +159,12 @@ class BaseEnv:
             init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, 0.0)),
         )
 
-        light_intensity = 30.0
+        self.light_intensity = 30.0
         if "light_intensity" in self.kargs:
-            light_intensity = self.kargs["light_intensity"]
+            self.light_intensity = self.kargs["light_intensity"]
 
         cfg.dome_light = AssetBaseCfg(
-            prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=light_intensity, color=(0.75, 0.75, 0.75))
+            prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=self.light_intensity, color=(0.75, 0.75, 0.75))
         )
 
         spherical_light_pos = (-2.0, -1.0, 3.0)
@@ -241,6 +242,14 @@ class BaseEnv:
 
         generator = np.random.default_rng(seed)
 
+
+        table_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Table/geometry/material/Shader")
+        if not table_shader_prim.GetAttribute("inputs:specularColor").IsValid():
+            table_shader_prim.CreateAttribute("inputs:specularColor", Sdf.ValueTypeNames.Color3f)
+            table_shader_prim.GetAttribute("inputs:roughness").Set(0.1)
+        if not table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").IsValid():
+            table_shader_prim.CreateAttribute("inputs:useSpecularWorkflow", Sdf.ValueTypeNames.Int)
+            table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(0)
         if self.visual_random:
             # randomize light color and intensity
             gen = np.random.default_rng(seed ^ 0x12345678)
@@ -259,20 +268,14 @@ class BaseEnv:
             # rand position in [-2.0, 2.0] * [-2.0, 2.0] * [2.5, 4.0]
             pos = gen.uniform([-2.0, -2.0, 2.5], [2.0, 2.0, 4.0])
             light_prim.GetAttribute("xformOp:translate").Set(Gf.Vec3d(pos[0], pos[1], pos[2]))
-            power = gen.uniform(300, 3000)
+            power = 300 * pow(10.0, gen.uniform(0.0, 2.0))
             radius = gen.uniform(0.02, 0.3)
             light_prim.GetAttribute("inputs:intensity").Set(power / (radius * radius))
             light_prim.GetAttribute("inputs:radius").Set(radius)
-
-            table_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Table/geometry/material/Shader")
-            table_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(gen.uniform(0.05, 0.3), gen.uniform(0.2, 0.5), gen.uniform(0.1, 0.4)))
-            table_shader_prim.GetAttribute("inputs:roughness").Set(0.1)
-            if not table_shader_prim.GetAttribute("inputs:specularColor").IsValid():
-                table_shader_prim.CreateAttribute("inputs:specularColor", Sdf.ValueTypeNames.Color3f)
-            table_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(0.3, 0.3, 0.3))
-            if not table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").IsValid():
-                table_shader_prim.CreateAttribute("inputs:useSpecularWorkflow", Sdf.ValueTypeNames.Int)
-            table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(1)
+            table_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(gen.uniform(0.0, 1.0), gen.uniform(0.0, 1.0), gen.uniform(0.0, 1.0)))
+            table_shader_prim.GetAttribute("inputs:roughness").Set(pow(10.0, gen.uniform(-2.0, 0.0)))
+            table_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(gen.uniform(0.05, 0.5), gen.uniform(0.05, 0.5), gen.uniform(0.05, 0.5)))
+            table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(gen.integers(2, size=None).item())
 
 
         return generator
@@ -307,6 +310,13 @@ class BaseEnv:
         self.sim.render(mode=sim_utils.SimulationContext.RenderMode.FULL_RENDERING)
         if result:
             self.num_steps += 1
+        if self.visual_random:
+            self.light_changing_counter += 1
+            if self.light_changing_counter >= 50:
+                self.light_changing_counter = 0
+                light_prim = self.stage.GetPrimAtPath(f"/World/Light")
+                light_prim.GetAttribute("inputs:intensity").Set(self.light_intensity * pow(10.0, np.random.uniform(0.0, 1.0)))
+
 
         reset_env_ids = torch.nonzero(self.done).squeeze(-1)
         if len(reset_env_ids) > 0:

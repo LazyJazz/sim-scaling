@@ -18,6 +18,9 @@ from isaaclab.assets.articulation import ArticulationCfg, Articulation
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.sensors import CameraCfg, Camera, TiledCameraCfg, TiledCamera
 
+from pxr import Usd, UsdGeom, Gf, Sdf
+import omni
+
 class PushTEnv(sim_scaling.task.base_env.BaseEnv):
     def __init__(self, linear_damping=None, eval_mode=False, **kargs):
         super().__init__(**kargs)
@@ -95,6 +98,19 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
             t_shape_prim = self.stage.GetPrimAtPath(f'/World/envs/env_{env_id.item()}/T_shape/T_shape_usd/mesh')
             lin_damp = self.linear_damping
             t_shape_prim.GetAttribute('physxRigidBody:linearDamping').Set(lin_damp)
+
+        t_shape_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/T_shape/material/Shader")
+        if not t_shape_shader_prim.GetAttribute("inputs:specularColor").IsValid():
+            t_shape_shader_prim.CreateAttribute("inputs:specularColor", Sdf.ValueTypeNames.Color3f)
+            t_shape_shader_prim.GetAttribute("inputs:roughness").Set(0.1)
+        if not t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").IsValid():
+            t_shape_shader_prim.CreateAttribute("inputs:useSpecularWorkflow", Sdf.ValueTypeNames.Int)
+            t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(0)
+        if self.visual_random:
+            t_shape_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0)))
+            t_shape_shader_prim.GetAttribute("inputs:roughness").Set(pow(10.0, generator.uniform(-2.0, 0.0)))
+            t_shape_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(generator.uniform(0.05, 0.5), generator.uniform(0.05, 0.5), generator.uniform(0.05, 0.5)))
+            t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(generator.integers(2, size=None).item())
 
         return generator
     
