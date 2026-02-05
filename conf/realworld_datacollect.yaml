@@ -1,0 +1,13 @@
+env:
+  __target__: sim_scaling.task.pusht_real.PushTRealEnv
+  args:
+    controller_ip: 101.6.101.86
+launch_app: null
+policy:
+  __target__: sim_scaling.policy.joystick_policy.JoystickPolicy
+  args: {}
+manager:
+  __target__: sim_scaling.manager.datagen_manager.DataGenManager
+  args:
+    path: ./data/pusht_real100j_test.zarr
+    succ_traj: 100
