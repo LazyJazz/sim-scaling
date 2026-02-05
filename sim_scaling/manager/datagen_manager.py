@@ -10,11 +10,10 @@ class DataGenManager(sim_scaling.manager.base_manager.BaseManager):
         self.recorder = sim_scaling.util.zarr_util.ZarrRecorder(path)
         self.succ_traj = succ_traj
 
-    def step(self, obs, action):
-        if (obs['head_pose'][..., :3] == action[..., :3]).all() and not obs['done'].any():
-            return  # No movement, skip recording
-        super().step(obs, action)
-        self.recorder.record_frame(obs, action)
+    def step(self, obs, action, step_result=False):
+        super().step(obs, action, step_result)
+        if step_result:
+            self.recorder.record_frame(obs, action)
 
     def should_terminate(self):
         return self.env.success_count >= self.succ_traj

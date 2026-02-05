@@ -19,8 +19,8 @@ class EvalManager(sim_scaling.manager.base_manager.BaseManager):
             os.makedirs(self.save_path)
         
 
-    def step(self, obs, action):
-        super().step(obs, action)
+    def step(self, obs, action, step_result=False):
+        super().step(obs, action, step_result)
         while self.env.done_queue:
             done_event = self.env.done_queue.pop(0)
             seed = done_event["seed"]

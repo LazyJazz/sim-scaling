@@ -17,8 +17,8 @@ class USDManipManager(sim_scaling.manager.base_manager.BaseManager):
         self.stage = self.env.stage
         self.current_prim = None
 
-    def step(self, obs, action):
-        super().step(obs, action)
+    def step(self, obs, action, step_result=False):
+        super().step(obs, action, step_result)
 
         if self.run_steps > 0:
             self.run_steps -= 1

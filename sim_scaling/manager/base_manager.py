@@ -11,8 +11,9 @@ class BaseManager:
         self.last_time = time.time()
         self.duration = 0.0
 
-    def step(self, obs, action):
-        self.iter += 1
+    def step(self, obs, action, step_result=False):
+        if step_result:
+            self.iter += 1
         self.duration = time.time() - self.last_time
         self.last_time = time.time()
 

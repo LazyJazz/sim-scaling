@@ -54,6 +54,7 @@ class PushTRealEnv:
         self.velocity = np.array([0.0, 0.0, 0.0])
         self.done_count = 0
         self.success_count = 0
+        self.num_steps = 0
     
     def get_success_rate(self):
         return self.success_count / max(1, self.done_count)
@@ -83,7 +84,9 @@ class PushTRealEnv:
             "rgb": color_image.to(self.device),
             "head_pose": torch.tensor([[self.ee_pose[0], self.ee_pose[1], self.ee_pose[2], 0.0, 1.0, 0.0, 0.0]], dtype=torch.float32).to(self.device),
             "done": torch.tensor([self.done], dtype=torch.bool).to(self.device),
-            "success": torch.tensor([self.success], dtype=torch.bool).to(self.device)
+            "success": torch.tensor([self.success], dtype=torch.bool).to(self.device),
+            "num_steps": torch.tensor([self.num_steps], dtype=torch.int32).to(self.device),
+            "velocity": torch.tensor([self.velocity], dtype=torch.float32).to(self.device)
         }
         return obs
     
@@ -97,27 +100,34 @@ class PushTRealEnv:
         dur = cur_tp - self.last_tp
         self.last_tp = cur_tp
         dur = min(dur, 0.033)  # Cap the duration to prevent large jumps
+
+
+        step_result = (not self.pause and (self.velocity != np.array([0.0, 0.0, 0.0])).any()) or self.done
+
         if self.done:
             self.done_count += 1
             if self.success:
                 self.success_count += 1
             self.reset()
+
         if self.joystick is not None:
             pygame.event.pump()  # Process event queue
-        if self.joystick.get_button(0):
-            self.pause = False
-        if self.joystick.get_button(1):
-            exit(0)
-        if self.joystick.get_button(2):
-            self.done = True
-            self.success = False
-        if self.joystick.get_button(3):
-            self.done = True
-            self.success = True
-        if self.pause:
-            return False
-        self.franka_client.set_pos(self.targ_pose + self.velocity * dur)
-        return True
+            if self.joystick.get_button(0):
+                self.pause = False
+            if self.joystick.get_button(1):
+                exit(0)
+            if self.joystick.get_button(2):
+                self.done = True
+                self.success = False
+            if self.joystick.get_button(3):
+                self.done = True
+                self.success = True
+
+        if step_result:
+            self.num_steps += 1
+            self.franka_client.set_pos(self.targ_pose + self.velocity * dur)
+            
+        return step_result
     
     def reset(self):
         self.franka_client.reset()
@@ -126,6 +136,8 @@ class PushTRealEnv:
         self.pause = True
         self.done = False
         self.success = False
+        self.num_steps = 0
+        self.velocity = np.array([0.0, 0.0, 0.0])
 
     def close(self):
         self.pipeline.stop()

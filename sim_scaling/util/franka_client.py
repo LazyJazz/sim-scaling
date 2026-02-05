@@ -21,7 +21,7 @@ class FrankaClient:
         self.websocket.send(message)
         response = self.websocket.recv()
         data = json.loads(response)
-        return np.array(data["ee_pos"]), np.array(data["targ_pos"])
+        return np.array(data["ee_pos"], dtype=np.float32), np.array(data["targ_pos"], dtype=np.float32)
     
     def set_pos(self, targ_pos):
         self.ensure_connect()

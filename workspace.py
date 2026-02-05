@@ -26,8 +26,8 @@ class Workspace:
             obs = self.env.get_observations()
             action = self.policy.get_action(obs)
             self.env.set_action(action)
-            self.env.step()
-            self.manager.step(obs, action)
+            step_result = self.env.step()
+            self.manager.step(obs, action, step_result)
 
             if self.manager.__repr__() != "":
                 print(f"{self.manager}")
