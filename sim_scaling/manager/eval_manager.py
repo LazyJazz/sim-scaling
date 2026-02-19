@@ -1,5 +1,4 @@
 import sim_scaling.manager.base_manager
-import sim_scaling.task.base_env
 
 import os
 import json

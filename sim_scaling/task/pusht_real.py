@@ -55,6 +55,12 @@ class PushTRealEnv:
         self.done_count = 0
         self.success_count = 0
         self.num_steps = 0
+
+        self.init_seed = 0
+        self.seed = 0
+        self.current_seed = 0
+        self.done_queue = []
+        self.done_record = {}
     
     def get_success_rate(self):
         return self.success_count / max(1, self.done_count)
@@ -104,11 +110,20 @@ class PushTRealEnv:
 
         step_result = (not self.pause and (self.velocity != np.array([0.0, 0.0, 0.0])).any()) or self.done
 
+        no_step = False
         if self.done:
             self.done_count += 1
             if self.success:
                 self.success_count += 1
+            done_event = {
+                    "seed": self.current_seed,
+                    "success": self.success,
+                    "num_steps": self.num_steps,
+                }
+            self.done_queue.append(done_event)
+            self.done_record[self.current_seed] = done_event
             self.reset()
+            no_step = True
 
         if self.joystick is not None:
             pygame.event.pump()  # Process event queue
@@ -123,7 +138,7 @@ class PushTRealEnv:
                 self.done = True
                 self.success = True
 
-        if step_result:
+        if step_result and not no_step:
             self.num_steps += 1
             self.franka_client.set_pos(self.targ_pose + self.velocity * dur)
             
@@ -138,6 +153,8 @@ class PushTRealEnv:
         self.success = False
         self.num_steps = 0
         self.velocity = np.array([0.0, 0.0, 0.0])
+        self.current_seed = self.seed
+        self.seed += 1
 
     def close(self):
         self.pipeline.stop()
