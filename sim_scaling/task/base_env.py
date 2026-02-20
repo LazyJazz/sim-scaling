@@ -71,6 +71,7 @@ class BaseEnv:
         self.success = torch.zeros(self.scene.num_envs, dtype=torch.bool, device=self.sim.device)
         self.num_steps = torch.zeros(self.scene.num_envs, dtype=torch.int32, device=self.sim.device)
         self.env_seed = [-1] * self.scene.num_envs
+        self.env_params = [{}] * self.scene.num_envs
         
         self.done_record = {}
         self.done_queue = []
@@ -261,21 +262,33 @@ class BaseEnv:
             pos[0] += 1.2
             camera_prim.GetAttribute("xformOp:translate").Set(Gf.Vec3d(pos[0], pos[1], pos[2]))
             aperture = gen.uniform(0.8, 0.9)
+            self.env_params[env_id]['aperture'] = aperture
             camera_prim.GetAttribute("horizontalAperture").Set(aperture)
             camera_prim.GetAttribute("verticalAperture").Set(aperture)
 
             light_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Spherical_Light")
             # rand position in [-2.0, 2.0] * [-2.0, 2.0] * [2.5, 4.0]
             pos = gen.uniform([-2.0, -2.0, 2.5], [2.0, 2.0, 4.0])
+            self.env_params[env_id]['light_pos'] = pos.tolist()
             light_prim.GetAttribute("xformOp:translate").Set(Gf.Vec3d(pos[0], pos[1], pos[2]))
             power = 300 * pow(10.0, gen.uniform(0.0, 2.0))
             radius = gen.uniform(0.02, 0.3)
+            self.env_params[env_id]['light_power'] = power
+            self.env_params[env_id]['light_radius'] = radius
             light_prim.GetAttribute("inputs:intensity").Set(power / (radius * radius))
             light_prim.GetAttribute("inputs:radius").Set(radius)
-            table_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(gen.uniform(0.0, 1.0), gen.uniform(0.0, 1.0), gen.uniform(0.0, 1.0)))
-            table_shader_prim.GetAttribute("inputs:roughness").Set(pow(10.0, gen.uniform(-2.0, 0.0)))
-            table_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(gen.uniform(0.05, 0.5), gen.uniform(0.05, 0.5), gen.uniform(0.05, 0.5)))
-            table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(gen.integers(2, size=None).item())
+            table_color = (gen.uniform(0.0, 1.0), gen.uniform(0.0, 1.0), gen.uniform(0.0, 1.0))
+            self.env_params[env_id]['table_color'] = table_color
+            table_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(table_color[0], table_color[1], table_color[2]))
+            table_roughness = pow(10.0, gen.uniform(-2.0, 0.0))
+            self.env_params[env_id]['table_roughness'] = table_roughness
+            table_shader_prim.GetAttribute("inputs:roughness").Set(table_roughness)
+            table_specular_color = (gen.uniform(0.05, 0.5), gen.uniform(0.05, 0.5), gen.uniform(0.05, 0.5))
+            self.env_params[env_id]['table_specular_color'] = table_specular_color
+            table_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(table_specular_color[0], table_specular_color[1], table_specular_color[2]))
+            table_specular_enable = gen.integers(2).item()
+            self.env_params[env_id]['table_specular_enable'] = table_specular_enable
+            table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(table_specular_enable)
 
 
         return generator
@@ -329,6 +342,7 @@ class BaseEnv:
                     "seed": self.env_seed[reset_env_id],
                     "success": self.success[reset_env_id].item(),
                     "num_steps": self.num_steps[reset_env_id].item(),
+                    "params": self.env_params[reset_env_id]
                 }
                 self.done_record[self.env_seed[reset_env_id]] = done_event
                 self.done_queue.append(done_event)

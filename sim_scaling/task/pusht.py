@@ -107,10 +107,18 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
             t_shape_shader_prim.CreateAttribute("inputs:useSpecularWorkflow", Sdf.ValueTypeNames.Int)
             t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(0)
         if self.visual_random:
-            t_shape_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0)))
-            t_shape_shader_prim.GetAttribute("inputs:roughness").Set(pow(10.0, generator.uniform(-2.0, 0.0)))
-            t_shape_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(generator.uniform(0.05, 0.5), generator.uniform(0.05, 0.5), generator.uniform(0.05, 0.5)))
-            t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(generator.integers(2, size=None).item())
+            t_shape_color = (generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0))
+            self.env_params[env_id]['t_shape_color'] = t_shape_color
+            t_shape_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(t_shape_color[0], t_shape_color[1], t_shape_color[2]))
+            t_shape_roughness = pow(10.0, generator.uniform(-2.0, 0.0))
+            self.env_params[env_id]['t_shape_roughness'] = t_shape_roughness
+            t_shape_shader_prim.GetAttribute("inputs:roughness").Set(t_shape_roughness)
+            t_shape_specular_color = (generator.uniform(0.05, 0.5), generator.uniform(0.05, 0.5), generator.uniform(0.05, 0.5))
+            self.env_params[env_id]['t_shape_specular_color'] = t_shape_specular_color
+            t_shape_shader_prim.GetAttribute("inputs:specularColor").Set(Gf.Vec3f(t_shape_specular_color[0], t_shape_specular_color[1], t_shape_specular_color[2]))
+            t_shape_specular_enable = generator.integers(2).item()
+            self.env_params[env_id]['t_shape_specular_enable'] = t_shape_specular_enable
+            t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(t_shape_specular_enable)
 
         return generator
     
