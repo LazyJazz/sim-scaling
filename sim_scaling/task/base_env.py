@@ -71,7 +71,7 @@ class BaseEnv:
         self.success = torch.zeros(self.scene.num_envs, dtype=torch.bool, device=self.sim.device)
         self.num_steps = torch.zeros(self.scene.num_envs, dtype=torch.int32, device=self.sim.device)
         self.env_seed = [-1] * self.scene.num_envs
-        self.env_params = [{}] * self.scene.num_envs
+        self.env_params = [{} for _ in range(self.scene.num_envs)]
         
         self.done_record = {}
         self.done_queue = []
@@ -342,7 +342,7 @@ class BaseEnv:
                     "seed": self.env_seed[reset_env_id],
                     "success": self.success[reset_env_id].item(),
                     "num_steps": self.num_steps[reset_env_id].item(),
-                    "params": self.env_params[reset_env_id]
+                    "params": self.env_params[reset_env_id].copy()
                 }
                 self.done_record[self.env_seed[reset_env_id]] = done_event
                 self.done_queue.append(done_event)
