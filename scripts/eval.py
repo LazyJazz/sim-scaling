@@ -10,7 +10,9 @@ def main():
     parser.add_argument('--num-envs', type=int, default=256, help='Number of environments to use')
     parser.add_argument('--pt', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--damp', action='store_true', help='Whether to generate validation data')
+    parser.add_argument('--adamp', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--vis-rand', action='store_true', help='Whether to generate validation data')
+    parser.add_argument('--marker', action='store_true', help='Whether to include marker in the scene')
     parser.add_argument('--run', action='store_true', help='Whether to run evaluation after generating config')
     parser.add_argument('--all', action='store_true', help='Generate configs for all settings')
     args = parser.parse_args()
@@ -22,8 +24,8 @@ def main():
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} --vis-rand {run_suffix}")
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} --damp --vis-rand {run_suffix}")
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --damp {run_suffix}")
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --vis-rand {run_suffix}")
+        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --damp {run_suffix}")
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --damp --vis-rand {run_suffix}")
         return
 
@@ -61,10 +63,18 @@ def main():
     
     suffix += f"{args.traj}"
 
+    if args.marker:
+        cfg['env']['args']['marker'] = True
+        suffix += "m"
+
     if args.damp:
         suffix += "d"
         cfg['env']['args']['linear_damping'] = 90.0
         cfg['env']['args']['gravity'] = 19.62
+    
+    if args.adamp:
+        suffix += "l"
+        cfg['env']['args']['angular_damping'] = 300.0
         
     if args.vis_rand:
         suffix += "v"

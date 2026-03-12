@@ -177,7 +177,7 @@ class BaseEnv:
 
         cfg.spherical_light = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Spherical_Light",
-            spawn=sim_utils.SphereLightCfg(intensity=300000.0, color=(1.0, 1.0, 1.0), radius=0.1),
+            spawn=sim_utils.SphereLightCfg(intensity=self.light_intensity*10000.0, color=(1.0, 1.0, 1.0), radius=0.1),
             init_state=AssetBaseCfg.InitialStateCfg(pos=spherical_light_pos)
         )
 
@@ -247,7 +247,7 @@ class BaseEnv:
         table_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/Table/geometry/material/Shader")
         if not table_shader_prim.GetAttribute("inputs:specularColor").IsValid():
             table_shader_prim.CreateAttribute("inputs:specularColor", Sdf.ValueTypeNames.Color3f)
-            table_shader_prim.GetAttribute("inputs:roughness").Set(0.1)
+            table_shader_prim.GetAttribute("inputs:roughness").Set(1.0)
         if not table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").IsValid():
             table_shader_prim.CreateAttribute("inputs:useSpecularWorkflow", Sdf.ValueTypeNames.Int)
             table_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(0)
@@ -271,7 +271,7 @@ class BaseEnv:
             pos = gen.uniform([-2.0, -2.0, 2.5], [2.0, 2.0, 4.0])
             self.env_params[env_id]['light_pos'] = pos.tolist()
             light_prim.GetAttribute("xformOp:translate").Set(Gf.Vec3d(pos[0], pos[1], pos[2]))
-            power = 300 * pow(10.0, gen.uniform(0.0, 2.0))
+            power = self.light_intensity * 10.0 * pow(10.0, gen.uniform(0.0, 2.0))
             radius = gen.uniform(0.02, 0.3)
             self.env_params[env_id]['light_power'] = power
             self.env_params[env_id]['light_radius'] = radius

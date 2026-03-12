@@ -1,8 +1,8 @@
 launch_app:
-  # renderer: RayTracedLighting
-  renderer: PathTracing
-  samples_per_pixel_per_frame: 4
-  use_denoiser: true
+  renderer: RayTracedLighting
+  # renderer: PathTracing
+  # samples_per_pixel_per_frame: 4
+  # use_denoiser: true
 
 env:
   __target__: sim_scaling.task.pusht.PushTEnv
@@ -12,7 +12,8 @@ env:
     env_spacing: 40.0
     step_limit: 2000
     visual_random: true
-    light_intensity: 100.0
+    # light_intensity: 100.0
+    marker: true
 
 policy:
   __target__: sim_scaling.policy.base_policy.BasePolicy

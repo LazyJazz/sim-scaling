@@ -10,7 +10,10 @@ def main():
     parser.add_argument('--pt', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--val', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--damp', action='store_true', help='Whether to generate validation data')
+    parser.add_argument('--adamp', action='store_true', help='Whether to generate validation data')
     parser.add_argument('--vis-rand', action='store_true', help='Whether to generate validation data')
+    parser.add_argument('--marker', action='store_true', help='Whether to include marker in the scene')
+    parser.add_argument('--run', action='store_true', help='Whether to run evaluation after generating config')
     args = parser.parse_args()
 
     cfg = OmegaConf.create()
@@ -50,10 +53,18 @@ def main():
     
     suffix += f"{args.traj}"
 
+    if args.marker:
+        cfg['env']['args']['marker'] = True
+        suffix += "m"
+
     if args.damp:
         suffix += "d"
         cfg['env']['args']['linear_damping'] = 90.0
         cfg['env']['args']['gravity'] = 19.62
+
+    if args.adamp:
+        suffix += "l"
+        cfg['env']['args']['angular_damping'] = 300.0
         
     if args.vis_rand:
         suffix += "v"
@@ -80,6 +91,8 @@ def main():
     path = f"conf/datagen_{suffix}.yaml"
     OmegaConf.save(cfg, path)
     print(f"Saved config to {path}")
+    if args.run:
+        os.system(f"python workspace.py --config {path} --headless")
 
 
 if __name__ == "__main__":

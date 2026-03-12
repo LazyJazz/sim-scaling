@@ -22,12 +22,18 @@ from pxr import Usd, UsdGeom, Gf, Sdf
 import omni
 
 class PushTEnv(sim_scaling.task.base_env.BaseEnv):
-    def __init__(self, linear_damping=None, eval_mode=False, **kargs):
+    def __init__(self, linear_damping=None, angular_damping=None, eval_mode=False, marker=False, **kargs):
+        self.marker = marker
         super().__init__(**kargs)
         self.t_shape = self.scene["t_shape"]
         self.t_shape: RigidObject
 
+        if self.marker:
+            self.t_marker = self.scene["t_marker"]
+            self.t_marker: RigidObject
+
         self.linear_damping = linear_damping
+        self.angular_damping = angular_damping
         self.eval_mode = eval_mode
 
     def scene_setup(self, num_envs=1, env_spacing=4):
@@ -52,25 +58,26 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
             )
         )
 
-        # cfg.t_marker = RigidObjectCfg(
-        #     prim_path="{ENV_REGEX_NS}/T_marker",
-        #     spawn=sim_utils.UsdFileCfg(
-        #         usd_path="assets/t-shape.usd",
-        #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
-        #             disable_gravity=True
-        #         ),
-        #         collision_props=sim_utils.CollisionPropertiesCfg(
-        #             collision_enabled=False
-        #         ),
-        #         visual_material=sim_utils.PreviewSurfaceCfg(
-        #             diffuse_color=(0.7, 0.1, 0.1)
-        #         )
-        #     ),
-        #     init_state=RigidObjectCfg.InitialStateCfg(
-        #         pos=(0.5, 0.0, 0.0751),
-        #         rot=(0.707, 0.0, 0.0, 0.707)
-        #     )
-        # )
+        if self.marker:
+            cfg.t_marker = RigidObjectCfg(
+                prim_path="{ENV_REGEX_NS}/T_marker",
+                spawn=sim_utils.UsdFileCfg(
+                    usd_path="assets/t-shape.usd",
+                    rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                        disable_gravity=True
+                    ),
+                    collision_props=sim_utils.CollisionPropertiesCfg(
+                        collision_enabled=False
+                    ),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.7, 0.1, 0.1)
+                    )
+                ),
+                init_state=RigidObjectCfg.InitialStateCfg(
+                    pos=(0.5, 0.0, 0.0751),
+                    rot=(0.707, 0.0, 0.0, 0.707)
+                )
+            )
 
         return cfg
     
@@ -98,6 +105,11 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
             t_shape_prim = self.stage.GetPrimAtPath(f'/World/envs/env_{env_id.item()}/T_shape/T_shape_usd/mesh')
             lin_damp = self.linear_damping
             t_shape_prim.GetAttribute('physxRigidBody:linearDamping').Set(lin_damp)
+    
+        if self.angular_damping is not None:
+            t_shape_prim = self.stage.GetPrimAtPath(f'/World/envs/env_{env_id.item()}/T_shape/T_shape_usd/mesh')
+            ang_damp = self.angular_damping
+            t_shape_prim.GetAttribute('physxRigidBody:angularDamping').Set(ang_damp)
 
         t_shape_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/T_shape/material/Shader")
         if not t_shape_shader_prim.GetAttribute("inputs:specularColor").IsValid():
@@ -119,6 +131,15 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
             t_shape_specular_enable = generator.integers(2).item()
             self.env_params[env_id]['t_shape_specular_enable'] = t_shape_specular_enable
             t_shape_shader_prim.GetAttribute("inputs:useSpecularWorkflow").Set(t_shape_specular_enable)
+
+            if self.marker:
+                t_marker_shader_prim = self.stage.GetPrimAtPath(f"/World/envs/env_{env_id.item()}/T_marker/material/Shader")
+                t_marker_color = (generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0), generator.uniform(0.0, 1.0))
+                self.env_params[env_id]['t_marker_color'] = t_marker_color
+                t_marker_shader_prim.GetAttribute("inputs:diffuseColor").Set(Gf.Vec3f(t_marker_color[0], t_marker_color[1], t_marker_color[2]))
+                t_marker_roughness = pow(10.0, generator.uniform(-2.0, 0.0))
+                self.env_params[env_id]['t_marker_roughness'] = t_marker_roughness
+                t_marker_shader_prim.GetAttribute("inputs:roughness").Set(t_marker_roughness)
 
         return generator
     
@@ -144,7 +165,7 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
         dpos = torch.norm(dpos, dim=-1)
         dquat = quat_geodesic_angle(self.t_shape.data.root_pose_w[:, 3:7], self.targ_pose[3:7])  # * quat_conjugate
         # check whether dpos < 0.005 and dquat < 0.05, in tensor
-        if self.eval_mode:
+        if self.eval_mode and not self.marker:
             success = (dpos < 0.05) & (dquat < 0.05)
         else:
             success = (dpos < 0.005) & (dquat < 0.05)
