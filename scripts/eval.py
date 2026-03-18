@@ -19,14 +19,12 @@ def main():
 
     if args.all:
         run_suffix = '--run' if args.run else ''
+        run_suffix += ' --vis-rand' if args.vis_rand else ''
+        run_suffix += ' --pt' if args.pt else ''
+        run_suffix += ' --marker' if args.marker else ''
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} {run_suffix}")
         os.system(f"python scripts/eval.py --ckpt {args.ckpt} --damp {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --vis-rand {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --damp --vis-rand {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --vis-rand {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --damp {run_suffix}")
-        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --pt --damp --vis-rand {run_suffix}")
+        os.system(f"python scripts/eval.py --ckpt {args.ckpt} --adamp {run_suffix}")
         return
 
     cfg = OmegaConf.create()

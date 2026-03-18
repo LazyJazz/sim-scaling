@@ -7,6 +7,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, required=True, default=None, help='Path to dataset 1')
+    parser.add_argument('--traj', type=int, default=None, help='Number of trajectories to use from the dataset')
     parser.add_argument('--val', type=str, required=True, default=None, help='Path to validation dataset 1')
     parser.add_argument('--mix-ratio', type=float, default=0.75, help='Mixing ratio for datasets')
     parser.add_argument('--training-step', type=int, default=1600000, help='Number of training epochs')
@@ -29,6 +30,10 @@ def main():
         }
     }
 
+    if args.traj is not None:
+        cfg['dataset']['args']['num_traj'] = args.traj
+        suffix += f"@{args.traj}"
+
     cfg['val_dataset'] = {
         "__target__": 'sim_scaling.util.dataset.ImageDataset',
         "args": {
@@ -37,7 +42,7 @@ def main():
     }
 
     cfg['training'] = {
-        'lr': 1e-4,
+        'lr': 1e-4 * (1600000 / args.training_step),
         'lr_min': 0.0,
         'batch_size': args.batch_size,
         'num_workers': 32,
