@@ -154,6 +154,48 @@ class BaseEnv:
                     pos=(0.22, 0.0, 0.05))
         )
 
+        cfg.platform = RigidObjectCfg(
+            prim_path="{ENV_REGEX_NS}/Platform",
+            spawn=sim_utils.CuboidCfg(
+                size=(3.0, 3.0, 0.01),
+                collision_props=sim_utils.CollisionPropertiesCfg(
+                    collision_enabled=True
+                ),
+                rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                    disable_gravity=False,
+                    max_linear_velocity=0.0,
+                    max_angular_velocity=0.0
+                ),
+                visual_material=sim_utils.PreviewSurfaceCfg(
+                    diffuse_color=(0.01, 0.01, 0.01),
+                    roughness=1.0
+                )
+                ),
+                init_state=RigidObjectCfg.InitialStateCfg(
+                    pos=(0.0, 0.0, 0.0))
+        )
+
+        cfg.backwall = RigidObjectCfg(
+            prim_path="{ENV_REGEX_NS}/Backwall",
+            spawn=sim_utils.CuboidCfg(
+                size=(0.1, 2.0, 2.0),
+                collision_props=sim_utils.CollisionPropertiesCfg(
+                    collision_enabled=True
+                ),
+                rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                    disable_gravity=False,
+                    max_linear_velocity=0.0,
+                    max_angular_velocity=0.0
+                ),
+                visual_material=sim_utils.PreviewSurfaceCfg(
+                    diffuse_color=(0.01, 0.01, 0.01),
+                    roughness=1.0
+                )
+                ),
+                init_state=RigidObjectCfg.InitialStateCfg(
+                    pos=(-0.5, 0.0, 1.0))
+        )
+
         cfg.ground = AssetBaseCfg(
             prim_path="/World/defaultGroundPlane",
             spawn=sim_utils.GroundPlaneCfg(size=(1000.0, 1000.0)),
