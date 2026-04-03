@@ -50,7 +50,8 @@ class PushTEnv(sim_scaling.task.base_env.BaseEnv):
                     collision_enabled=True
                 ),
                 visual_material=sim_utils.PreviewSurfaceCfg(
-                    diffuse_color=(0.6, 0.1, 0.6)
+                    diffuse_color=(0.5, 0.12, 0.3),
+                    roughness=0.9
                 )
             ),
             init_state=RigidObjectCfg.InitialStateCfg(

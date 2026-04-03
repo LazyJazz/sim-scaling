@@ -104,7 +104,7 @@ class USDManipManager(sim_scaling.manager.base_manager.BaseManager):
             imgs = obs['rgb']
             b, h, w, c = imgs.shape
             for i in range(b):
-                path = f"imgs/{self.iter}"
+                path = f"imgs/"
                 # create directory if not exists
                 import os
                 os.makedirs(path, exist_ok=True)
@@ -112,7 +112,7 @@ class USDManipManager(sim_scaling.manager.base_manager.BaseManager):
                 from PIL import Image
                 im = Image.fromarray(img)
                 im.save(f"{path}/{i}.png")
-            print(f"Saved {b} images to imgs/{self.iter}/")
+            print(f"Saved {b} images to {path}")
         
 
     def should_terminate(self):

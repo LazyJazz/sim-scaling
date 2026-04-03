@@ -146,8 +146,8 @@ class BaseEnv:
                     max_angular_velocity=0.0
                 ),
                 visual_material=sim_utils.PreviewSurfaceCfg(
-                    diffuse_color=(0.1, 0.3, 0.2),
-                    roughness=1.0
+                    diffuse_color=(0.05, 0.18, 0.16),
+                    roughness=0.4
                 )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
@@ -159,7 +159,7 @@ class BaseEnv:
             spawn=sim_utils.CuboidCfg(
                 size=(3.0, 3.0, 0.01),
                 collision_props=sim_utils.CollisionPropertiesCfg(
-                    collision_enabled=True
+                    collision_enabled=False
                 ),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     disable_gravity=False,
@@ -167,12 +167,12 @@ class BaseEnv:
                     max_angular_velocity=0.0
                 ),
                 visual_material=sim_utils.PreviewSurfaceCfg(
-                    diffuse_color=(0.01, 0.01, 0.01),
+                    diffuse_color=(0.0, 0.0, 0.0),
                     roughness=1.0
                 )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.0, 0.0, 0.0))
+                    pos=(0.0, 0.0, 0.094))
         )
 
         cfg.backwall = RigidObjectCfg(
@@ -180,7 +180,7 @@ class BaseEnv:
             spawn=sim_utils.CuboidCfg(
                 size=(0.1, 2.0, 2.0),
                 collision_props=sim_utils.CollisionPropertiesCfg(
-                    collision_enabled=True
+                    collision_enabled=False
                 ),
                 rigid_props=sim_utils.RigidBodyPropertiesCfg(
                     disable_gravity=False,
@@ -207,19 +207,19 @@ class BaseEnv:
             self.light_intensity = self.kargs["light_intensity"]
 
         cfg.dome_light = AssetBaseCfg(
-            prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=self.light_intensity, color=(0.75, 0.75, 0.75))
+            prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=self.light_intensity*12.0, color=(0.75, 0.75, 0.75))
         )
 
-        spherical_light_pos = (-2.0, -1.0, 3.0)
+        spherical_light_pos = (0.5, 1.0, 3.0)
         if "light_pos" in self.kargs:
             if self.kargs["light_pos"] == "reverse":
-                spherical_light_pos = (2.0, 1.0, 3.0)
+                spherical_light_pos = (-2.0, -1.0, 3.0)
             else:
                 spherical_light_pos = tuple(self.kargs["light_pos"])
 
         cfg.spherical_light = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Spherical_Light",
-            spawn=sim_utils.SphereLightCfg(intensity=self.light_intensity*10000.0, color=(1.0, 1.0, 1.0), radius=0.1),
+            spawn=sim_utils.SphereLightCfg(intensity=self.light_intensity*4000.0, color=(1.0, 1.0, 1.0), radius=0.1),
             init_state=AssetBaseCfg.InitialStateCfg(pos=spherical_light_pos)
         )
 
@@ -370,7 +370,7 @@ class BaseEnv:
             if self.light_changing_counter >= 50:
                 self.light_changing_counter = 0
                 light_prim = self.stage.GetPrimAtPath(f"/World/Light")
-                light_prim.GetAttribute("inputs:intensity").Set(self.light_intensity * pow(10.0, np.random.uniform(0.0, 1.0)))
+                light_prim.GetAttribute("inputs:intensity").Set(self.light_intensity * pow(10.0, np.random.uniform(0.0, 1.7)))
 
 
         reset_env_ids = torch.nonzero(self.done).squeeze(-1)
